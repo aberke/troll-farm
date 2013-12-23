@@ -3,7 +3,9 @@ package main
 import (
 	"os"
 	"fmt"
+	"log"
 	"net/http"
+    //"code.google.com/p/go.net/websocket"
 )
 
 func main() {
@@ -14,10 +16,19 @@ func main() {
 		port = "5000"
 	}
 	fmt.Println("using port:", port)
-	http.HandleFunc("/", handler)
-	http.ListenAndServe(":"+port, nil)
+
+	http.HandleFunc("/static/", serveStatic)
+	http.HandleFunc("/", serveHome)
+	
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatalf("Error listening, %v", err)
+    }
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, GO")
+func serveHome(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./public/")
+}
+func serveStatic(w http.ResponseWriter, r *http.Request) {
+	var staticFileHandler = http.FileServer(http.Dir("./public/"))
+	staticFileHandler.ServeHTTP(w, r)
 }
