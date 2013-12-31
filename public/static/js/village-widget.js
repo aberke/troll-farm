@@ -1,14 +1,16 @@
-console.log('village HERE');
 /* troll farm widget file */
 
 
 var host = "127.0.0.1:5000";
-//var host = "http://troll-farm.herokuapp.com";
+//var host = "troll-farm.herokuapp.com";
 
-var domain = "http://" + host;
+var DOMAIN = "http://" + host;
 var NEW_CONNECTION_ENDPOINT = "/connect";
 
 var TROLL_VILLAGE_WIDGET_ID = "troll-village-widget";
+
+var TROLL_SCRIPTS = 	["/static/js/village-module.js",];
+var TROLL_STYLESHEETS = ["/static/css/widget.css",];
 
 
 /* wrap in anonymous function as to not interfere with existing function and variable names */
@@ -68,28 +70,43 @@ var trollVillageWidgetModule = function() {
 	};
 
 	var withStyleSheet = function(src, callback) {
-		// requires jQuery to be loaded
 		if (document.createStyleSheet) {
 			document.createStyleSheet(src);
 		} else {
-			jQuery("<link>", { 
-				rel: "stylesheet", 
-				type: "text/css", 
-				href: src
-			}).appendTo('head');
+			var file = document.createElement("link")
+			file.setAttribute("rel", "stylesheet")
+			file.setAttribute("type", "text/css")
+			file.setAttribute("href", src)
+
+			if (typeof file !== "undefined")
+				document.getElementsByTagName("head")[0].appendChild(file)
 		}
 		callback();
 	};
+	var loadDependencies = function(callback) {
+		var numDependencies = TROLL_STYLESHEETS.length + TROLL_SCRIPTS.length + 1; // +1 for jquery
+        var numLoaded = 0;
+        function dependencyLoaded() {
+                numLoaded++;
+                if (numLoaded === numDependencies) {
+                        callback();
+                }
+        }
+        withJQ(dependencyLoaded);
+		for(var i in TROLL_STYLESHEETS) {
+			withStyleSheet(DOMAIN + TROLL_STYLESHEETS[i], dependencyLoaded);
+		}
+		for(var i in TROLL_SCRIPTS) {
+			withScript(DOMAIN + TROLL_SCRIPTS[i], dependencyLoaded);
+		}
+	};
+	loadDependencies(main);
 
- 	// load dependencies
-	withJQ(function() {
-		withStyleSheet(domain + "/static/css/widget.css", main);
-	});
 
 	/* helper for 'getting' and 'posting' (cough... jsonp hack to get around cross origin issue...) */
 	function jsonp(data_url, data, onSuccess, onError){
 		jQuery.ajax({
-			url: domain + data_url,
+			url: DOMAIN + data_url,
 			dataType: 'jsonp',
 			data: data
 		}).done(function(returnedData){ 
@@ -130,12 +147,10 @@ var trollVillageWidgetModule = function() {
 
 		jQuery(document).ready(function($) {
 			
-			fill_widget_content("hi");
+			fill_widget_content("hi trolls...");
 
 			this.trollVillageModule = new TrollVillageModule(document.getElementById(TROLL_VILLAGE_WIDGET_ID));
 			this.trollVillageModule.init();
-			console.log('initiated trollVillageModule');
-			console.log(this.trollVillageModule)
 		});
 	}
 	return {
@@ -143,127 +158,6 @@ var trollVillageWidgetModule = function() {
 		fill_widget_content: fill_widget_content,
 	};	
 }();
-
-/* -------------------------- VILLAGE ---------------------- */
-
-
-var TrollVillageModule = function(widgetDiv) {
-
-	this.trollConnection;
-
-	this.widgetDiv = widgetDiv;
-	this.canvas;
-	this.context;
-
-	/* board is a 10x10 grid with 40x40 px squares  */
-	this.board = {"width": 400,
-				  "height": 400,
-				  "cellSize": 40,
-				 }
-
-	this.createCanvas = function() {
-		this.canvas = document.createElement('canvas');
-		this.canvas.id = "trollVillageModule-canvas";
-		this.canvas.width = this.board.width;
-		this.canvas.height = this.board.height;
-		this.widgetDiv.appendChild(this.canvas);
-		this.context = this.canvas.getContext("2d");
-	}
-	this.drawBoard = function() {
-		if (! this.canvas ) this.createCanvas();
-
-		for (var x=0; x<=this.board.width; x+=this.board.cellSize) {
-			this.context.moveTo(x, 0);
-			this.context.lineTo(x, this.board.height);
-		}
-		for (var y=0; y<=this.board.height; y+=this.board.cellSize) {
-			this.context.moveTo(0, y);
-			this.context.lineTo(this.board.width, y);
-		}	
-		this.context.strokeStyle = "black";
-		this.context.stroke();
-	}
-
-	/* Define an object to hold all our images for the game so images are only ever created once. */
-	this.imageRepository = new function() {
-        // Define images
-        this.troll = new Image();
-        this.otherTroll = new Image();
-
-        // Ensure all images have loaded before starting the game
-        var numImages = 2;
-        var numLoaded = 0;
-        function imageLoaded() {
-            numLoaded++;
-            if (numLoaded === numImages) {
-                    //this.init();
-            }
-        }
-        this.troll.onload = function() {
-                imageLoaded();
-        }
-        this.otherTroll.onload = function() {
-                imageLoaded();
-        }
-
-        // Set images src
-        this.troll.src = "/static/img/troll.gif";
-        this.otherTroll.src = "/static/img/other-troll.gif";
-	}
-	this.init = function() {
-		this.drawBoard();
-
-		var trollConnection = new TrollConnection();
-		trollConnection.init(function() {
-			trollConnection.sendTest();
-			trollConnection.sendTrollsRequest();
-
-		});
-		this.trollConnection = trollConnection;
-
-	}
-
-}
-
-
-
-
-
-
-var TrollConnection = function() {
-	var ws;
-
-
-	function connect() {
-		var ws = new WebSocket("ws://" + host + NEW_CONNECTION_ENDPOINT);
-		return ws;
-	}
-	this.init = function(callback) {
-		console.log("TrollConnection init")
-		ws = connect();
-
-		ws.onmessage = function(event) {
-			//console.log(event);
-			console.log("onmessage: " + event.data);
-		};
-		ws.onopen = function(event) {
-			if (callback) callback();
-		}
-		console.log(ws)
-
-	}
-	function send(msgBody) {
-		ws.send(JSON.stringify(msgBody));
-	}
-	this.sendTest = function() {
-		var msg = {"message-type": "test",};
-		send(msg);
-	}
-	this.sendTrollsRequest = function() {
-		var msg = {"message-type": "trolls"};
-		send(msg);
-	}
-}
 
 
 
