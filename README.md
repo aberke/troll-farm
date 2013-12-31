@@ -2,6 +2,8 @@ Troll Farm
 ====================
 <img src="https://troll-farm.herokuapp.com/static/img/other-troll.gif"
  alt="troll-farm logo" title="A real troll" align="left" />
+<img src="https://troll-farm.herokuapp.com/static/img/other-troll.gif"
+ alt="troll-farm logo" title="A real troll" align="right" />
 
 By trolls, for trolls.
 <https://troll-farm.herokuapp.com/>
