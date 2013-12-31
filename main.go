@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-    "./trolls"
+    "github.com/aberke/troll-farm/trolls"
 )
 
 func main() {
