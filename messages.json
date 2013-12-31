@@ -1,0 +1,75 @@
+
+There's always an existing troll map that is ready to be sent out
+
+troll-map: {trollID: troll for troll in troll-map}
+
+{
+	1: {
+		"Name": "troll-name",
+		"Color": "#123456", 
+		"Coordinates": {
+			"x": 45,
+			"y": 55,
+		},
+		"Messages": ["nice to meet you", "my name is troll, whats your name", "hi"],
+		"Points": 123,
+	},
+	2: .....
+}
+
+-------------------------------------------------------------
+
+server sends updates via websockets to villages
+all POST requests are returned with updates
+
+client can also request to get all trolls
+
+server -> client
+
+update message:
+{
+	"Type": "upsate",
+	"LocalTroll": trollID,
+	"TrollsMap": troll-map-update (includes only trolls that have been updated since last message),
+}
+trolls message:
+{
+	"Type": "trolls",
+	"LocalTroll": trollID,
+	"TrollsMap": troll-map,
+}
+test:
+{
+	"Type": "test",
+	"LocalTroll": trollID,
+	"TrollsMap": [] (empty map)
+}
+-----------------
+
+client -> server
+
+/move
+{
+	"Type": "move",
+	"Data": {
+		"x": 0 | 1,
+		"y": 0 | 1,
+	},
+}
+/message 
+{
+	"Type": "message",
+	"Data": { "new message here" },
+}
+
+/trolls
+{
+	"Type": "trolls",
+}
+/test
+{
+	"Type": "test",
+}
+/connect
+just initializes websocket connection -- client should then GET /trolls
+
