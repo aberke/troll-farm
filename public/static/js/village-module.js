@@ -6,7 +6,7 @@ var TrollConnection = function() {
 
 
 	function connect() {
-		var ws = new WebSocket("ws://" + host + NEW_CONNECTION_ENDPOINT);
+		var ws = new WebSocket("wss://" + host + NEW_CONNECTION_ENDPOINT);
 		return ws;
 	}
 	this.init = function(callback) {
