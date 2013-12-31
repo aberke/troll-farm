@@ -1,10 +1,10 @@
 /* troll farm widget file */
 
 
-//var host = "127.0.0.1:5000";
-var host = "troll-farm.herokuapp.com";
+//var host = "http://127.0.0.1:5000";
+var host = "https://troll-farm.herokuapp.com";
 
-var DOMAIN = "http://" + host;
+var DOMAIN = host;//"http://" + host;
 var NEW_CONNECTION_ENDPOINT = "/connect";
 
 var TROLL_VILLAGE_WIDGET_ID = "troll-village-widget";
