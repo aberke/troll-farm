@@ -5,21 +5,27 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-    //"code.google.com/p/go.net/websocket"
+
+    "./trolls"
 )
 
 func main() {
-	var port = os.Getenv("PORT")
 
+	var port = os.Getenv("PORT")
 	if len(port) == 0 {
 		fmt.Println("$PORT not set -- defaulting to 5000", port)
 		port = "5000"
 	}
 	fmt.Println("using port:", port)
 
+
+	// troll websocket server
+	trollServer := trolls.NewServer()
+	go trollServer.Listen()
+	
 	http.HandleFunc("/static/", serveStatic)
 	http.HandleFunc("/", serveHome)
-	
+
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Error listening, %v", err)
     }
