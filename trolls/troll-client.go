@@ -12,6 +12,7 @@ import (
 )
 
 const channelBufSize = 5
+const maxTrolls = 9
 
 var maxId int = 0
 
@@ -63,8 +64,11 @@ func NewTroll(ws *websocket.Conn, server *Server) *Troll {
     if server == nil {
         panic("server cannot be nil")
     }
-
+    if maxId == maxTrolls {
+        panic("server already has maximum number of trolls")
+    }
     maxId++
+    
     ch := make(chan *OutgoingMessage, channelBufSize)
     doneCh := make(chan bool)
 

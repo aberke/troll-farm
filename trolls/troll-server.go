@@ -4,6 +4,7 @@ import (
         "log"
         "net/http"
         "strconv"
+        "math"
 
         "code.google.com/p/go.net/websocket"
 )
@@ -16,6 +17,9 @@ type Server struct {
         trolls    		map[int]*Troll
         trollsDataMap	map[int]*TrollData
         updateMap		map[int]*TrollData
+
+        grid			[][]bool // indicates whether a given spot is empty on the grid
+
         addCh     		chan *Troll
         delCh     		chan *Troll
         messageCh 		chan *IncomingMessage
@@ -28,6 +32,14 @@ func NewServer() *Server {
 	trolls := make(map[int]*Troll)
 	trollsDataMap := make(map[int]*TrollData)
 	updateMap := make(map[int]*TrollData)
+
+	// Allocate the top-level slice.
+	grid := make([][]bool, 10)  // One row per unit of y.
+	// Loop over the rows, allocating the slice for each row.
+	for i := range grid {
+		grid[i] = make([]bool, 10)
+	}
+
 	addCh := make(chan *Troll)
 	delCh := make(chan *Troll)
 	messageCh := make(chan *IncomingMessage)
@@ -38,6 +50,7 @@ func NewServer() *Server {
 		trolls,
 		trollsDataMap,
 		updateMap,
+		grid,
 		addCh,
 		delCh,
 		messageCh,
@@ -95,14 +108,30 @@ func (s *Server) recieveMessageMessage(trollID int, data map[string]string) {
 	log.Println("TODO: recieveMessageMessage")
 }
 func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
-	x, _ := strconv.Atoi(data["x"])
-	y, _ := strconv.Atoi(data["y"])
-	
-	s.trollsDataMap[trollID].Coordinates["x"] += x
-	s.trollsDataMap[trollID].Coordinates["y"] += y
+	// extract the troll client's move from the message data
+	moveX, _ := strconv.Atoi(data["x"])
+	moveY, _ := strconv.Atoi(data["y"])
+	// retrieve troll client's current position
+	currentX := s.trollsDataMap[trollID].Coordinates["x"]
+	currentY := s.trollsDataMap[trollID].Coordinates["y"]
+	// calculate requested new position coordinates
+	requestedX := (currentX + moveX)
+	requestedY := (currentY + moveY)
 
-	s.updateMap[trollID] = s.trollsDataMap[trollID]
-	s.sendUpdateMessage()
+	if (s.grid[requestedX][requestedY]) { 
+		// requested cell is occupied -- send back trolls message in case client doesn't know
+		s.sendTrollsMessage(trollID)
+	} else {
+		// move that troll
+		s.grid[currentX][currentY] = false
+		s.grid[requestedX][requestedY] = true
+
+		s.trollsDataMap[trollID].Coordinates["x"] = requestedX
+		s.trollsDataMap[trollID].Coordinates["y"] = requestedY
+
+		s.updateMap[trollID] = s.trollsDataMap[trollID]
+		s.sendUpdateMessage()
+	}	
 }
 
 
@@ -124,8 +153,18 @@ func (s *Server) recieveMessage(msg *IncomingMessage) {
 	}
 }
 func (s *Server) addTrollConnection(t *Troll) {
-	td := NewTrollData(t)
 	log.Println("addTrollConnection *****")
+
+	td := NewTrollData(t)
+	// find a cell for the new troll
+	x := td.Coordinates["x"]
+	for (s.grid[x][0]) {
+		x = int(math.Mod(float64(x + 1), 9))
+	}
+	s.grid[x][0] = true
+	td.Coordinates["x"] = x
+
+
 	s.updateMap[t.id] = td
 	s.sendUpdateMessage()
 
