@@ -190,7 +190,7 @@ func (s *Server) deleteTrollConnection(t *Troll) {
 	s.updateMap[t.id] = td
 
 	// delete troll
-	s.grid[td.Coordinates["x"]["y"]] = false
+	s.grid[td.Coordinates["x"]][td.Coordinates["y"]] = false
 	delete(s.trolls, t.id)
 	delete(s.trollsDataMap, t.id)
 
