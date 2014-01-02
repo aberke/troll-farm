@@ -92,11 +92,11 @@ var TrollVillageModule = function(widgetDiv) {
 		for (var trollID in trollsMap) {
 			troll = trollsMap[trollID]
 			self.updateTroll(trollID, troll);
-		}		
+		}	
 	}
 
 	this.recieveTrolls = function(msg) {
-		console.log('TrollVillageModule recieveTrolls: ')
+		console.log('TrollVillageModule recieveTrolls')
 		console.log(msg)
 
 		// clear out old trolls
@@ -107,17 +107,20 @@ var TrollVillageModule = function(widgetDiv) {
 
 		var trollsMap = msg.TrollsMap;
 		for (var trollID in trollsMap) {
+
+			var newTroll;
 			
 			troll = trollsMap[trollID];
 			if (trollID == self.localID) {
-				self.trolls[trollID] = new LocalTroll();
+				newTroll = new LocalTroll();
 			} else {
-				self.trolls[trollID] = new OtherTroll();
+				newTroll = new OtherTroll();
 			}
-			self.trolls[trollID].init(troll.Coordinates.x,troll.Coordinates.y, self.context, self.board);
+			newTroll.init(troll.Coordinates.x,troll.Coordinates.y, self.context, self.board);
+			newTroll.id = trollID;
+			self.trolls[trollID] = newTroll;
+
 		}
-		// DELETE
-		trollConnection.sendPing()
 	}
 	this.recievePing = function(msg) {
 		console.log("ping -> pong");
@@ -182,7 +185,7 @@ var TrollVillageModule = function(widgetDiv) {
 	}
 
 
-var Troll = function() {
+function Troll() {
 	this.x;
 	this.y;
 	this.padding = 5;
@@ -194,23 +197,26 @@ var Troll = function() {
 
 	this.img;
 	this.context;
-	var self;
+
+	this.print = function() {
+		console.log(this)
+	}
 
 	this.move = function(direction) {
 		if (direction == "left") {
-			if (self.x > 0)  trollConnection.sendMove(-1, 0);
+			if (this.x > 0)  trollConnection.sendMove(-1, 0);
 		} else if (direction == "right") {
-			if (self.x < (self.board.width-1)) trollConnection.sendMove(1, 0);
+			if (this.x < (this.board.width-1)) trollConnection.sendMove(1, 0);
 		} else if (direction == "up") {
-			if (self.y > 0) trollConnection.sendMove(0, -1);
+			if (this.y > 0) trollConnection.sendMove(0, -1);
 		} else if (direction == "down") {
-			if (self.y < (self.board.height-1)) trollConnection.sendMove(0, 1);
+			if (this.y < (this.board.height-1)) trollConnection.sendMove(0, 1);
 		} else {
 			console.log("direction: " + direction);
 		}
 	}
 	this.erase = function() {
-		this.context.clearRect(self.x_px, self.y_px, self.width, self.height);
+		this.context.clearRect(this.x_px, this.y_px, this.width, this.height);
 	}
 
 	this.draw = function() {
@@ -231,7 +237,6 @@ var Troll = function() {
 		this.draw();
 	}
 	this.init = function(x, y, context, board) {
-		self = this;
 		this.x = x;
 		this.y = y;
 		this.context = context;
@@ -240,14 +245,19 @@ var Troll = function() {
 	}
 
 }
-var LocalTroll = function() {
+function LocalTroll() {
 	this.img = imageRepository.troll;
+	var self = this;
 
-	setKeyListeners(this.move);
+	// need closure
+	var onkeydown = function(key) {
+		self.move(key);
+	}
+	setKeyListeners(onkeydown);
 }
 LocalTroll.prototype = new Troll();
 
-var OtherTroll = function() {
+function OtherTroll() {
 	this.img = imageRepository.otherTroll;
 }
 OtherTroll.prototype = new Troll();
