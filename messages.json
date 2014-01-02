@@ -28,8 +28,8 @@ server -> client
 
 update message:
 {
-	"Type": "upsate",
-	"LocalTroll": trollID,
+	"Type": "update",
+	"LocalTroll": 0,
 	"TrollsMap": troll-map-update (includes only trolls that have been updated since last message),
 }
 trolls message:
@@ -52,8 +52,8 @@ client -> server
 {
 	"Type": "move",
 	"Data": {
-		"x": 0 | 1,
-		"y": 0 | 1,
+		"x": 0 | 1 | -1,
+		"y": 0 | 1 | -1,
 	},
 }
 /message 

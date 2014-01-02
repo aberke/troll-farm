@@ -1,7 +1,7 @@
 package trolls
 
 import (
-	"fmt"
+	//"fmt"
 	"strconv"
 )
 
@@ -9,34 +9,35 @@ import (
 
 type IncomingMessage struct {
 	Type 		string `json:"message-type"`
-	Data   		string `json:"data"`
+	Data   		map[string]string `json:"data"`
+	LocalTroll	int
 }
 
 type OutgoingMessage struct {
 	Type 		string
-	LocalTroll  int
 	TrollsMap 	map[string]TrollData
+	LocalTroll  int
 }
 
 func NewOutgoingMessage(msgType string, localTroll int, trollsDataMap map[int]*TrollData) *OutgoingMessage {
-	fmt.Println("888888 NewOutgoingMessage")
 	var trolls map[string]TrollData
 	trolls = nil
 	if (trollsDataMap != nil) {
-		fmt.Println("trollsDataMap not nil")
 		trolls = JSONifyTrollsDataMap(trollsDataMap)
-	} 
-	fmt.Println("trolls", trolls)
+	}
 
 	return &OutgoingMessage{
 		msgType,
-		localTroll,
 		trolls,
+		localTroll,
 	}
 }
 
 func OutgoingTrollsMessage(localTroll int, trollsMap map[int]*TrollData) *OutgoingMessage {
 	return NewOutgoingMessage("trolls", localTroll, trollsMap)
+}
+func OutgoingUpdateMessage(localTroll int, trollsMap map[int]*TrollData) *OutgoingMessage {
+	return NewOutgoingMessage("update", localTroll, trollsMap)
 }
 
 func OutgoingTestMessage(localTroll int) *OutgoingMessage {
@@ -49,7 +50,10 @@ func JSONifyTrollsDataMap(trollsDataMap map[int]*TrollData) map[string]TrollData
 	m := make(map[string]TrollData)
 	for trollID, trollData := range trollsDataMap {
 		trollIDString := strconv.Itoa(trollID) // json object can't have ints as keys
-		m[trollIDString] = *trollData
+		
+		if (trollData != nil) { // nil if we're signaling this troll removed
+			m[trollIDString] = *trollData
+		}
 	}
 	return m
 }

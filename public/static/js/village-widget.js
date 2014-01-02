@@ -1,6 +1,9 @@
 /* troll farm widget file */
 
 
+var WEBSOCKET_HOST = "ws://127.0.0.1:5000";
+//var WEBSOCKET_HOST = "wss://troll-farm.herokuapp.com";
+
 var DOMAIN = "http://127.0.0.1:5000";
 //var DOMAIN = "https://troll-farm.herokuapp.com";
 var NEW_CONNECTION_ENDPOINT = "/connect";

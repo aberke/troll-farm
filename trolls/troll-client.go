@@ -5,6 +5,7 @@ import (
         "io"
         "log"
         "os"
+        "math"
         "encoding/json"
 
         "code.google.com/p/go.net/websocket"
@@ -18,41 +19,30 @@ var maxId int = 0
 
 // Troll client JSON data
 type TrollData struct {
-    Name        string
+    Name        string  // used names: {"DELETE": indicates to client to delete troll}
     Color       string
-    //coordinates map[string]int
-    //messages    []string
+    Coordinates map[string]int
+    Messages    []string
     Points      int64
 }
 // Create new TrollData from Troll
 func NewTrollData(troll *Troll) *TrollData {
     log.Println("*** NewTrollData *****")
 
-    // coordinates     := make(map[string]int)
-    // coordinates["x"] = 0
-    // coordinates["y"] = 0
-    //messages        := make([]string, 5)
-
-    //td := TrollData{"no-name", "#FF00FF", coordinates, messages, 0}
-    td := TrollData{"no-name", "#FF00FF", 0}
+    coordinates     := make(map[string]int)
+    coordinates["x"] = int(math.Mod(float64(troll.id), 9))
+    coordinates["y"] = 0
+    messages        := make([]string, 5)
+    td := TrollData{"no-name", "#FF00FF", coordinates, messages, 0}
 
     encodedTd, err := json.MarshalIndent(td, "", " ")
     if err != nil {
-        fmt.Println("0000000err", err)
+        fmt.Println("****** err *****", err)
     }
     os.Stdout.Write(encodedTd)
 
     return &td
 }
-// func (td *TrollData) encodeJSON() map[string]string{
-//     m               := make(map[string]string)
-//     m["name"]       = td.name
-//     m["color"]      = td.color
-//     m["coordinates"]= json.Marshall(td.coordinates)
-//     m["messages"]   = td.messages
-//     m["points"]     = td.points
-//     return m
-// }
 
 
 // Troll client.
@@ -103,13 +93,11 @@ func (t *Troll) Listen() {
 
 // Listen write request via chanel
 func (t *Troll) listenWrite() {
-    log.Println("Troll listenWrite")
     for {
         select {
 
             // send message to the client
             case msg := <-t.ch:
-                log.Println("Send:", msg)
                 websocket.JSON.Send(t.ws, msg)
 
             // receive done request
@@ -123,7 +111,6 @@ func (t *Troll) listenWrite() {
 
 // Listen read request via chanel
 func (t *Troll) listenRead() {
-    log.Println("Troll listenRead")
     for {
         select {
 
@@ -142,7 +129,8 @@ func (t *Troll) listenRead() {
                 } else if err != nil {
                     t.server.Err(err)
                 } else {
-                    t.server.recieveMessage(t.id, &msg)
+                    msg.LocalTroll = t.id
+                    t.server.RecieveMessage(&msg)
                 }
         }
     }

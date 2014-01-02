@@ -6,22 +6,26 @@ var TrollConnection = function() {
 
 
 	function connect() {
-		var ws = new WebSocket("wss://" + host + NEW_CONNECTION_ENDPOINT);
+		var ws = new WebSocket(WEBSOCKET_HOST + NEW_CONNECTION_ENDPOINT);
 		return ws;
 	}
-	this.init = function(callback) {
-		console.log("TrollConnection init")
+	this.init = function(messageCallbacks, callback) {
 		ws = connect();
 
 		ws.onmessage = function(event) {
-			//console.log(event);
-			//console.log("onmessage: " + event.data);
+			var msg = event.data;
+			if (typeof msg === "string"){ msg = JSON.parse(msg); }
+
+			console.log(msg["Type"])
+
+			if (messageCallbacks[msg.Type])
+				messageCallbacks[msg.Type](msg);
+			else
+				console.log("Recieved unrecognized message type: " + msg.Type);
 		};
 		ws.onopen = function(event) {
 			if (callback) callback();
 		}
-		console.log(ws)
-
 	}
 	function send(msgBody) {
 		ws.send(JSON.stringify(msgBody));
@@ -34,13 +38,21 @@ var TrollConnection = function() {
 		var msg = {"message-type": "trolls"};
 		send(msg);
 	}
+	this.sendMove = function(x, y) {
+		var msg = { "message-type": "move",
+					"data": {"x":String(x), "y":String(y)}
+				  }
+		send(msg);
+	}
 }
 
 var TrollVillageModule = function(widgetDiv) {
+	var self = this;
 
-	this.localTroll;
+	this.trolls = {};  // maps {trollID: troll}
+	this.localID;
 
-	this.trollConnection;
+	var trollConnection;
 
 	this.widgetDiv = widgetDiv;
 	this.canvas;
@@ -51,6 +63,62 @@ var TrollVillageModule = function(widgetDiv) {
 				  "height": 10,
 				  "cellSize": 40,
 				 }
+
+	this.removeTroll = function(trollID) {
+		if (this.trolls[trollID]) {
+			this.trolls[trollID].erase();
+			delete this.trolls[trollID];
+		}
+	}
+	this.updateTroll = function(trollID, troll) {
+		if (troll.Name == "DELETE") 
+			return this.removeTroll(trollID);
+
+		if (self.trolls[trollID]) {
+			self.trolls[trollID].update(troll.Coordinates.x,troll.Coordinates.y);
+		} else {
+			self.trolls[trollID] = new OtherTroll();
+			self.trolls[trollID].init(troll.Coordinates.x,troll.Coordinates.y, self.context, self.board);
+		}	
+	}
+
+	this.recieveUpdate = function(msg) {
+		console.log('TrollVillageModule recieveUpdate')
+		console.log(msg)
+
+		var troll; // recycled variable as iterate through map
+		var trollsMap = msg.TrollsMap;
+
+		for (var trollID in trollsMap) {
+			troll = trollsMap[trollID]
+			self.updateTroll(trollID, troll);
+		}		
+	}
+
+	this.recieveTrolls = function(msg) {
+		console.log('TrollVillageModule recieveTrolls: ')
+		console.log(msg)
+
+		// clear out old trolls
+		self.trolls = {};
+
+		self.localID = msg.LocalTroll;
+		var troll; // recycled variable as iterate through map
+
+		var trollsMap = msg.TrollsMap;
+		for (var trollID in trollsMap) {
+			
+			troll = trollsMap[trollID];
+			if (trollID == self.localID) {
+				self.trolls[trollID] = new LocalTroll();
+			} else {
+				self.trolls[trollID] = new OtherTroll();
+			}
+			self.trolls[trollID].init(troll.Coordinates.x,troll.Coordinates.y, self.context, self.board);
+		}
+		// DELETE
+		trollConnection.sendTest()
+	}
 
 	this.createCanvas = function() {
 		this.canvas = document.createElement('canvas');
@@ -76,7 +144,7 @@ var TrollVillageModule = function(widgetDiv) {
 	}
 
 	/* Define an object to hold all our images for the game so images are only ever created once. */
-	this.imageRepository = new function() {
+	var imageRepository = new function() {
         // Define images
         this.troll = new Image();
         this.otherTroll = new Image();
@@ -104,28 +172,13 @@ var TrollVillageModule = function(widgetDiv) {
 	this.init = function() {
 		this.drawBoard();
 
-		var trollConnection = new TrollConnection();
-		trollConnection.init(function() {
-			trollConnection.sendTest();
-			trollConnection.sendTrollsRequest();
-
-		});
-		this.trollConnection = trollConnection;
-
-
-		this.localTroll = new Troll();
-
-		setKeyListeners(this.localTroll.move);
-
-		this.localTroll.setImage(this.imageRepository.troll);
-		this.localTroll.init(0,0, this.context, this.board);
-
+		trollConnection = new TrollConnection();
+		trollConnection.init( {"trolls": this.recieveTrolls,
+									"update": this.recieveUpdate,} );
 	}
 
-}
 
 var Troll = function() {
-	//var _x,_y,_width,_height;
 	this.x;
 	this.y;
 	this.padding = 5;
@@ -137,26 +190,28 @@ var Troll = function() {
 
 	this.img;
 	this.context;
-	var self = this;
+	var self;
 
 	this.move = function(direction) {
 		if (direction == "left") {
-			if (self.x > 0)  self.x--;
+			if (self.x > 0)  trollConnection.sendMove(-1, 0);
 		} else if (direction == "right") {
-			if (self.x < (self.board.width-1)) self.x++;
+			if (self.x < (self.board.width-1)) trollConnection.sendMove(1, 0);
 		} else if (direction == "up") {
-			if (self.y > 0) self.y--;
+			if (self.y > 0) trollConnection.sendMove(0, -1);
 		} else if (direction == "down") {
-			if (self.y < (self.board.height-1)) self.y++;
+			if (self.y < (self.board.height-1)) trollConnection.sendMove(0, 1);
 		} else {
 			console.log("direction: " + direction);
 		}
-		self.draw();
+	}
+	this.erase = function() {
+		this.context.clearRect(self.x_px, self.y_px, self.width, self.height);
 	}
 
 	this.draw = function() {
 		if (this.x_px)
-			this.context.clearRect(self.x_px, self.y_px, self.width, self.height);
+			this.erase();
 
 		this.x_px = this.x*this.board.cellSize + this.padding;
 		this.y_px = this.y*this.board.cellSize + this.padding;
@@ -172,6 +227,7 @@ var Troll = function() {
 		this.draw();
 	}
 	this.init = function(x, y, context, board) {
+		self = this;
 		this.x = x;
 		this.y = y;
 		this.context = context;
@@ -180,6 +236,25 @@ var Troll = function() {
 	}
 
 }
+var LocalTroll = function() {
+	this.img = imageRepository.troll;
+
+	setKeyListeners(this.move);
+}
+LocalTroll.prototype = new Troll();
+
+var OtherTroll = function() {
+	this.img = imageRepository.otherTroll;
+}
+OtherTroll.prototype = new Troll();
+
+
+
+
+
+
+}
+
 
 /* --------------------------------------------------------------- */
 
