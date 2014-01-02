@@ -82,9 +82,9 @@ func (s *Server) sendUpdateMessage() {
 	s.updateMap = make(map[int]*TrollData)
 }
 
-func (s *Server) recieveTestMessage(trollID int) {
+func (s *Server) recievePingMessage(trollID int) {
 	var msg *OutgoingMessage
-	msg = OutgoingTestMessage(trollID)
+	msg = OutgoingPingMessage(trollID)
 	s.trolls[trollID].Write(msg)
 }
 func (s *Server) recieveTrollsMessage(trollID int) {
@@ -111,8 +111,8 @@ func (s *Server) recieveMessage(msg *IncomingMessage) {
 	log.Println("incoming msg: ", msg)
 
 	switch msg.Type {
-	case "test":
-		s.recieveTestMessage(msg.LocalTroll)
+	case "ping":
+		s.recievePingMessage(msg.LocalTroll)
 	case "trolls":
 		s.recieveTrollsMessage(msg.LocalTroll)
 	case "message":

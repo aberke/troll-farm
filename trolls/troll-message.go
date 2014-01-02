@@ -40,10 +40,10 @@ func OutgoingUpdateMessage(localTroll int, trollsMap map[int]*TrollData) *Outgoi
 	return NewOutgoingMessage("update", localTroll, trollsMap)
 }
 
-func OutgoingTestMessage(localTroll int) *OutgoingMessage {
+func OutgoingPingMessage(localTroll int) *OutgoingMessage {
 	nilMap := make(map[int]*TrollData)
 	nilMap = nil
-	return NewOutgoingMessage("test", localTroll, nilMap)
+	return NewOutgoingMessage("ping", localTroll, nilMap)
 }
 
 func JSONifyTrollsDataMap(trollsDataMap map[int]*TrollData) map[string]TrollData {

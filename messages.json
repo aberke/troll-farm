@@ -38,9 +38,9 @@ trolls message:
 	"LocalTroll": trollID,
 	"TrollsMap": troll-map,
 }
-test:
+ping:
 {
-	"Type": "test",
+	"Type": "ping",
 	"LocalTroll": trollID,
 	"TrollsMap": [] (empty map)
 }
@@ -66,9 +66,9 @@ client -> server
 {
 	"Type": "trolls",
 }
-/test
+/ping
 {
-	"Type": "test",
+	"Type": "ping",
 }
 /connect
 just initializes websocket connection -- client should then GET /trolls

@@ -30,8 +30,8 @@ var TrollConnection = function() {
 	function send(msgBody) {
 		ws.send(JSON.stringify(msgBody));
 	}
-	this.sendTest = function() {
-		var msg = {"message-type": "test",};
+	this.sendPing = function() {
+		var msg = {"message-type": "ping",};
 		send(msg);
 	}
 	this.sendTrollsRequest = function() {
@@ -117,7 +117,10 @@ var TrollVillageModule = function(widgetDiv) {
 			self.trolls[trollID].init(troll.Coordinates.x,troll.Coordinates.y, self.context, self.board);
 		}
 		// DELETE
-		trollConnection.sendTest()
+		trollConnection.sendPing()
+	}
+	this.recievePing = function(msg) {
+		console.log("ping -> pong");
 	}
 
 	this.createCanvas = function() {
@@ -173,8 +176,9 @@ var TrollVillageModule = function(widgetDiv) {
 		this.drawBoard();
 
 		trollConnection = new TrollConnection();
-		trollConnection.init( {"trolls": this.recieveTrolls,
-									"update": this.recieveUpdate,} );
+		trollConnection.init({"trolls": this.recieveTrolls,
+							  "update": this.recieveUpdate,
+							  "ping": this.recievePing} );
 	}
 
 
