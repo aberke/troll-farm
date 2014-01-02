@@ -204,13 +204,13 @@ function Troll() {
 
 	this.move = function(direction) {
 		if (direction == "left") {
-			if (this.x > 0)  trollConnection.sendMove(-1, 0);
+			trollConnection.sendMove(-1, 0);
 		} else if (direction == "right") {
-			if (this.x < (this.board.width-1)) trollConnection.sendMove(1, 0);
+			trollConnection.sendMove(1, 0);
 		} else if (direction == "up") {
-			if (this.y > 0) trollConnection.sendMove(0, -1);
+			trollConnection.sendMove(0, -1);
 		} else if (direction == "down") {
-			if (this.y < (this.board.height-1)) trollConnection.sendMove(0, 1);
+			trollConnection.sendMove(0, 1);
 		} else {
 			console.log("direction: " + direction);
 		}

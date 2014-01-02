@@ -121,15 +121,15 @@ func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
 	requestedX := (currentX + moveX)
 	requestedY := (currentY + moveY)
 
-	// validate that requested position is legal
-	if (requestedX < 0 || requestedX > GRID_WIDTH || requestedY < 0 || requestedY > GRID_HEIGHT) {
-		log.Println("THERE'S A BAD TROLL ON OUR HANDS")
+	// collision detection with grid boundaries
+	if (requestedX < 0 || requestedX >= GRID_WIDTH || requestedY < 0 || requestedY >= GRID_HEIGHT) {
+		s.sendTrollsMessage(trollID)
 		return
 	}
-
+	// collision detection with other trolls
 	if (s.grid[requestedX][requestedY]) { 
-		// requested cell is occupied -- send back trolls message in case client doesn't know
 		s.sendTrollsMessage(trollID)
+		return
 	} else {
 		// move that troll
 		s.grid[currentX][currentY] = false
