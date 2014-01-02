@@ -183,12 +183,14 @@ func (s *Server) addTrollConnection(t *Troll) {
 	s.sendTrollsMessage(t.id)
 }
 func (s *Server) deleteTrollConnection(t *Troll) {
-	// set troll to be deleted in updateMap
 	td := s.trollsDataMap[t.id]
+
+	// set troll to be deleted in updateMap
 	td.Name = "DELETE"
 	s.updateMap[t.id] = td
 
 	// delete troll
+	s.grid[td.Coordinates["x"]["y"]] = false
 	delete(s.trolls, t.id)
 	delete(s.trollsDataMap, t.id)
 
