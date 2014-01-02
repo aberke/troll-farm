@@ -11,6 +11,9 @@ import (
 
 const NEW_CONNECTION_ENDPOINT = "/connect";
 
+const GRID_WIDTH  = 10
+const GRID_HEIGHT = 10
+
 
 // troll server
 type Server struct {
@@ -34,10 +37,10 @@ func NewServer() *Server {
 	updateMap := make(map[int]*TrollData)
 
 	// Allocate the top-level slice.
-	grid := make([][]bool, 10)  // One row per unit of y.
+	grid := make([][]bool, GRID_HEIGHT)  // One row per unit of y.
 	// Loop over the rows, allocating the slice for each row.
 	for i := range grid {
-		grid[i] = make([]bool, 10)
+		grid[i] = make([]bool, GRID_WIDTH)
 	}
 
 	addCh := make(chan *Troll)
@@ -117,6 +120,12 @@ func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
 	// calculate requested new position coordinates
 	requestedX := (currentX + moveX)
 	requestedY := (currentY + moveY)
+
+	// validate that requested position is legal
+	if (requestedX < 0 || requestedX > GRID_WIDTH || requestedY < 0 || requestedY > GRID_HEIGHT) {
+		log.Println("THERE'S A BAD TROLL ON OUR HANDS")
+		return
+	}
 
 	if (s.grid[requestedX][requestedY]) { 
 		// requested cell is occupied -- send back trolls message in case client doesn't know
