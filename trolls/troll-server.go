@@ -4,7 +4,6 @@ import (
         "log"
         "net/http"
         "strconv"
-        "math"
 
         "code.google.com/p/go.net/websocket"
 )
@@ -16,11 +15,7 @@ const NEW_CONNECTION_ENDPOINT = "/connect";
 // troll server
 type Server struct {
         trolls    		map[int]*Troll
-
-        gridItemsMap	map[int]*GridItem
-        updateMap		map[int]*GridItem
-        grid			[][]int // (x,y) position mapped to key of GridItem in gridItemsMap
-
+		grid 			*Grid
         addCh     		chan *Troll
         delCh     		chan *Troll
         messageCh 		chan *IncomingMessage
@@ -31,8 +26,6 @@ type Server struct {
 // Create new troll server.
 func NewServer() *Server {
 	trolls := make(map[int]*Troll)
-	gridItemsMap := make(map[int]*GridItem)
-	updateMap := make(map[int]*GridItem)
 
 	grid := NewGrid()
 
@@ -42,10 +35,8 @@ func NewServer() *Server {
 	doneCh := make(chan bool)
 	errCh := make(chan error)
 
-	s :=  &Server{
+	return &Server{
 		trolls,
-		gridItemsMap,
-		updateMap,
 		grid,
 		addCh,
 		delCh,
@@ -53,11 +44,6 @@ func NewServer() *Server {
 		doneCh,
 		errCh,
 	}
-	// add the food button to the grid
-	foodButton := NewFoodButton()
-	s.gridItemsMap[FOODBUTTON_ID] = foodButton
-
-	return s
 }
 
 
@@ -84,16 +70,17 @@ func (s *Server) sendAll(msg *OutgoingMessage) {
 }
 
 func (s *Server) sendUpdateMessage() {
+
 	var msg *OutgoingMessage
-	msg = OutgoingUpdateMessage(0, s.updateMap)
+	msg = OutgoingUpdateMessage(0, s.grid.UpdateMap())
 	s.sendAll(msg)
 
 	// clear out updateMap
-	s.updateMap = make(map[int]*GridItem)
+	s.grid.ClearUpdateMap()
 }
 func (s *Server) sendItemsMessage(trollID int) {
 	var msg *OutgoingMessage
-	msg = OutgoingItemsMessage(trollID, s.gridItemsMap)
+	msg = OutgoingItemsMessage(trollID, s.grid.ItemsMap())
 	s.trolls[trollID].Write(msg)
 }
 
@@ -113,33 +100,13 @@ func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
 	// extract the troll client's move from the message data
 	moveX, _ := strconv.Atoi(data["x"])
 	moveY, _ := strconv.Atoi(data["y"])
-	// retrieve troll client's current position
-	currentX := s.gridItemsMap[trollID].Coordinates["x"]
-	currentY := s.gridItemsMap[trollID].Coordinates["y"]
-	// calculate requested new position coordinates
-	requestedX := (currentX + moveX)
-	requestedY := (currentY + moveY)
 
-	// collision detection with grid boundaries
-	if (requestedX < 0 || requestedX >= GRID_WIDTH || requestedY < 0 || requestedY >= GRID_HEIGHT) {
+	validMove := s.grid.MoveTroll(trollID, moveX, moveY)
+	if (!validMove) {
 		s.sendItemsMessage(trollID)
 		return
 	}
-	// collision detection with other trolls
-	if (s.grid[requestedX][requestedY] != 0) { 
-		s.sendItemsMessage(trollID)
-		return
-	} else {
-		// move that troll
-		s.grid[currentX][currentY] = 0
-		s.grid[requestedX][requestedY] = trollID
-
-		s.gridItemsMap[trollID].Coordinates["x"] = requestedX
-		s.gridItemsMap[trollID].Coordinates["y"] = requestedY
-
-		s.updateMap[trollID] = s.gridItemsMap[trollID]
-		s.sendUpdateMessage()
-	}	
+	s.sendUpdateMessage()	
 }
 
 
@@ -163,35 +130,16 @@ func (s *Server) recieveMessage(msg *IncomingMessage) {
 func (s *Server) addTrollConnection(t *Troll) {
 	log.Println("addTrollConnection *****")
 
-	gi := t.NewGridItem()
-	// find a cell for the new troll
-	x := gi.Coordinates["x"]
-	for (s.grid[x][0] != 0) {
-		x = int(math.Mod(float64(x + 1), 9))
-	}
-	s.grid[x][0] = t.id
-	gi.Coordinates["x"] = x
-
-
-	s.updateMap[t.id] = gi
+	s.grid.AddTroll(t.id)
 	s.sendUpdateMessage()
 
 	s.trolls[t.id] = t
-	s.gridItemsMap[t.id] = gi
 	log.Println("Added new troll - Now", len(s.trolls), "trolls connected.")
 	s.sendItemsMessage(t.id)
 }
 func (s *Server) deleteTrollConnection(t *Troll) {
-	gi := s.gridItemsMap[t.id]
-
-	// set troll to be deleted in updateMap
-	gi.Name = "DELETE"
-	s.updateMap[t.id] = gi
-
-	// delete troll
-	RemoveGridItem(s.grid, gi)
+	s.grid.DeleteTroll(t.id)
 	delete(s.trolls, t.id)
-	delete(s.gridItemsMap, t.id)
 
 	// send update message
 	s.sendUpdateMessage()

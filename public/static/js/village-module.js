@@ -230,7 +230,6 @@ function Drawable() {
 	}
 
 	this.draw = function() {
-		console.log(this)
 		if (this.x_px)
 			this.erase();
 
