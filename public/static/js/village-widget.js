@@ -151,7 +151,6 @@ var trollVillageWidgetModule = function() {
 			fill_widget_content("hi trolls...");
 
 			this.trollVillageModule = new TrollVillageModule(document.getElementById(TROLL_VILLAGE_WIDGET_ID));
-			this.trollVillageModule.init();
 		});
 	}
 	return {

@@ -11,6 +11,10 @@ import (
 const GRID_WIDTH  = 10
 const GRID_HEIGHT = 10
 
+// special GridItem ids
+const FOODBUTTON_ID = -1
+const BANANA_ID     = -2
+
 
 /* The grid is a 2D array that maps (x,y) positions to the key of a GridItem in the gridItemsMap */
 func NewGrid () [][]int {
@@ -31,9 +35,26 @@ type GridItem struct {
     Messages    []string
     Points      int64
 }
+func NewFoodButton () *GridItem {
+    log.Println("*** NewFoodButton *****")
+
+    coordinates     := make(map[string]int)
+    coordinates["x"] = 9
+    coordinates["y"] = 9
+    messages        := make([]string, 0)
+    gi := GridItem{"FOODBUTTON", "#FFFFFF", coordinates, messages, 0}
+
+    encodedGi, err := json.MarshalIndent(gi, "", " ")
+    if err != nil {
+        fmt.Println("****** err *****", err)
+    }
+    os.Stdout.Write(encodedGi)
+
+    return &gi
+}
 // Create new TrollData from Troll
 func (t *Troll) NewGridItem () *GridItem{
-    log.Println("*** NewGridItem *****")
+    log.Println("*** Troll.NewGridItem *****")
 
     coordinates     := make(map[string]int)
     coordinates["x"] = int(math.Mod(float64(t.id), 9))

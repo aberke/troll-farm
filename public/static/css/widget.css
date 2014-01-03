@@ -1,8 +1,11 @@
 #troll-village-widget {
-	background-color: aquamarine;
+	position: relative;
 }
 
-canvas {
+#troll-village-widget canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
 	border: 1px solid red;
 	padding: 10px;
 }

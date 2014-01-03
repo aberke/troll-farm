@@ -42,7 +42,7 @@ func NewServer() *Server {
 	doneCh := make(chan bool)
 	errCh := make(chan error)
 
-	return &Server{
+	s :=  &Server{
 		trolls,
 		gridItemsMap,
 		updateMap,
@@ -53,6 +53,11 @@ func NewServer() *Server {
 		doneCh,
 		errCh,
 	}
+	// add the food button to the grid
+	foodButton := NewFoodButton()
+	s.gridItemsMap[FOODBUTTON_ID] = foodButton
+
+	return s
 }
 
 
@@ -77,11 +82,7 @@ func (s *Server) sendAll(msg *OutgoingMessage) {
 		t.Write(msg)
 	}
 }
-func (s *Server) sendItemsMessage(trollID int) {
-	var msg *OutgoingMessage
-	msg = OutgoingItemsMessage(trollID, s.gridItemsMap)
-	s.trolls[trollID].Write(msg)
-}
+
 func (s *Server) sendUpdateMessage() {
 	var msg *OutgoingMessage
 	msg = OutgoingUpdateMessage(0, s.updateMap)
@@ -89,6 +90,11 @@ func (s *Server) sendUpdateMessage() {
 
 	// clear out updateMap
 	s.updateMap = make(map[int]*GridItem)
+}
+func (s *Server) sendItemsMessage(trollID int) {
+	var msg *OutgoingMessage
+	msg = OutgoingItemsMessage(trollID, s.gridItemsMap)
+	s.trolls[trollID].Write(msg)
 }
 
 func (s *Server) recievePingMessage(trollID int) {

@@ -33,7 +33,7 @@ func NewTroll(ws *websocket.Conn, server *Server) *Troll {
         panic("server cannot be nil")
     }
     if maxId == maxTrolls {
-        panic("server already has maximum number of trolls")
+        //panic("server already has maximum number of trolls")
     }
     maxId++
 
