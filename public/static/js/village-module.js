@@ -152,11 +152,13 @@ var TrollVillageModule = function(widgetDiv) {
 	/* Define an object to hold all our images for the game so images are only ever created once. */
 	var imageRepository = new function() {
         // Define images
-        this.troll = new Image();
+        this.troll 		= new Image();
         this.otherTroll = new Image();
+        this.foodButton = new Image();
+        this.food 		= new Image();
 
         // Ensure all images have loaded before starting the game
-        var numImages = 2;
+        var numImages = 4;
         var numLoaded = 0;
         function imageLoaded() {
             numLoaded++;
@@ -170,10 +172,18 @@ var TrollVillageModule = function(widgetDiv) {
         this.otherTroll.onload = function() {
                 imageLoaded();
         }
+        this.foodButton.onload = function() {
+                imageLoaded();
+        }
+        this.food.onload = function() {
+                imageLoaded();
+        }
 
         // Set images src
-        this.troll.src = DOMAIN + "/static/img/troll.gif";
-        this.otherTroll.src = "/static/img/other-troll.gif";
+        this.troll.src 		= DOMAIN + "/static/img/troll.gif";
+        this.otherTroll.src = DOMAIN + "/static/img/other-troll.gif";
+        this.foodButton.src = DOMAIN + "/static/img/troll-food-button.JPG";
+        this.food.src 		= DOMAIN + "/static/img/banana.gif";
 	}
 	this.init = function() {
 		this.drawBoard();

@@ -48,11 +48,11 @@ func OutgoingPingMessage(localTroll int) *OutgoingMessage {
 
 func JSONifyGridItemsMap(gridItemsMap map[int]*GridItem) map[string]GridItem {
 	m := make(map[string]GridItem)
-	for trollID, trollData := range gridItemsMap {
-		trollIDString := strconv.Itoa(trollID) // json object can't have ints as keys
+	for id, item := range gridItemsMap {
+		idString := strconv.Itoa(id) // json object can't have ints as keys
 		
-		if (trollData != nil) { // nil if we're signaling this troll removed
-			m[trollIDString] = *trollData
+		if (item != nil) { // nil if we're signaling this troll removed
+			m[idString] = *item
 		}
 	}
 	return m
