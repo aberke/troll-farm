@@ -1,11 +1,11 @@
 
-There's always an existing troll map that is ready to be sent out
+There's always an existing item map that is ready to be sent out
 
-troll-map: {trollID: troll for troll in troll-map}
+item-map: {itemID: troll for troll in troll-map}
 
 {
 	1: {
-		"Name": "troll-name",
+		"Name": "item-name",
 		"Color": "#123456", 
 		"Coordinates": {
 			"x": 45,
@@ -20,9 +20,9 @@ troll-map: {trollID: troll for troll in troll-map}
 -------------------------------------------------------------
 
 server sends updates via websockets to villages
-all POST requests are returned with updates
+all (client -> server) requests are returned with updates
 
-client can also request to get all trolls
+client can also request to get all items
 
 server -> client
 
@@ -32,7 +32,7 @@ update message:
 	"LocalTroll": 0,
 	"ItemsMap": item-map-update (includes only items that have been updated since last message),
 }
-trolls message:
+items message -- all items on the grid:
 {
 	"Type": "items",
 	"LocalTroll": trollID,
@@ -62,7 +62,7 @@ client -> server
 	"Data": { "new message here" },
 }
 
-/trolls
+/items -- a request for all the items on the grid:
 {
 	"Type": "trolls",
 }
