@@ -1,14 +1,15 @@
 /* troll farm widget file */
 
 
-//var WEBSOCKET_HOST = "ws://127.0.0.1:5000";
-var WEBSOCKET_HOST = "ws://troll-farm.herokuapp.com";
+var WEBSOCKET_HOST = "ws://127.0.0.1:5000";
+//var WEBSOCKET_HOST = "ws://troll-farm.herokuapp.com";
 
-//var DOMAIN = "http://127.0.0.1:5000";
-var DOMAIN = "https://troll-farm.herokuapp.com";
+var DOMAIN = "http://127.0.0.1:5000";
+//var DOMAIN = "https://troll-farm.herokuapp.com";
 var NEW_CONNECTION_ENDPOINT = "/connect";
 
 var TROLL_VILLAGE_WIDGET_ID = "troll-village-widget";
+var TROLL_VILLAGE_WIDGET_CONTAINER_ID = "troll-village-widget-container";
 
 var TROLL_SCRIPTS = 	["/static/js/village-module.js",];
 var TROLL_STYLESHEETS = ["/static/css/widget.css",];
@@ -136,7 +137,7 @@ var trollVillageWidgetModule = function() {
 	}
 
 	function fill_widget_content(content) {
-		jQuery('#troll-village-widget').html(content);
+		jQuery('#' + TROLL_VILLAGE_WIDGET_ID).html(content);
 	};
 
 	function main(){
@@ -147,10 +148,15 @@ var trollVillageWidgetModule = function() {
 		if (!isCanvasSupported()) { console.log("Canvas not supported"); return null; }
 
 		jQuery(document).ready(function($) {
-			
-			fill_widget_content("hi trolls...");
 
-			this.trollVillageModule = new TrollVillageModule(document.getElementById(TROLL_VILLAGE_WIDGET_ID));
+			var widget = document.createElement('div');
+			widget.id = TROLL_VILLAGE_WIDGET_ID;
+			var widgetContainer = document.getElementById(TROLL_VILLAGE_WIDGET_CONTAINER_ID)
+			widgetContainer.appendChild(widget);
+
+			fill_widget_content("<h3>hi trolls...</h3>");
+
+			this.trollVillageModule = new TrollVillageModule(widget);
 		});
 	}
 	return {
