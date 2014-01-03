@@ -49,7 +49,7 @@ var TrollConnection = function() {
 var TrollVillageModule = function(widgetDiv) {
 	var self = this;
 
-	this.trolls = {};  // maps {trollID: troll}
+	this.items = {};  // maps {itemID: DrawableItem}
 	this.localID;
 
 	var trollConnection;
@@ -64,21 +64,21 @@ var TrollVillageModule = function(widgetDiv) {
 				  "cellSize": 40,
 				 }
 
-	this.removeTroll = function(trollID) {
-		if (this.trolls[trollID]) {
-			this.trolls[trollID].erase();
-			delete this.trolls[trollID];
+	this.removeItem = function(trollID) {
+		if (this.items[trollID]) {
+			this.items[trollID].erase();
+			delete this.items[trollID];
 		}
 	}
-	this.updateTroll = function(trollID, troll) {
-		if (troll.Name == "DELETE") 
-			return this.removeTroll(trollID);
+	this.updateItem = function(itemID, item) {
+		if (item.Name == "DELETE") 
+			return this.removeItem(itemID);
 
-		if (self.trolls[trollID]) {
-			self.trolls[trollID].update(troll.Coordinates.x,troll.Coordinates.y);
+		if (self.items[itemID]) {
+			self.items[itemID].update(item.Coordinates.x, item.Coordinates.y);
 		} else {
-			self.trolls[trollID] = new OtherTroll();
-			self.trolls[trollID].init(troll.Coordinates.x,troll.Coordinates.y, self.context, self.board);
+			self.items[itemID] = new OtherTroll();
+			self.items[itemID].init(item.Coordinates.x, item.Coordinates.y, self.context, self.board);
 		}	
 	}
 
@@ -86,39 +86,39 @@ var TrollVillageModule = function(widgetDiv) {
 		console.log('TrollVillageModule recieveUpdate')
 		console.log(msg)
 
-		var troll; // recycled variable as iterate through map
-		var trollsMap = msg.TrollsMap;
+		var item; // recycled variable as iterate through map
+		var itemsMap = msg.ItemsMap;
 
-		for (var trollID in trollsMap) {
-			troll = trollsMap[trollID]
-			self.updateTroll(trollID, troll);
+		for (var itemID in itemsMap) {
+			item = itemsMap[itemID]
+			self.updateItem(itemID, item);
 		}	
 	}
 
-	this.recieveTrolls = function(msg) {
-		console.log('TrollVillageModule recieveTrolls')
+	this.recieveItems = function(msg) {
+		console.log('TrollVillageModule recieveItems')
 		console.log(msg)
 
-		// clear out old trolls
-		self.trolls = {};
+		// clear out old items
+		self.items = {};
 
 		self.localID = msg.LocalTroll;
-		var troll; // recycled variable as iterate through map
+		var item; // recycled variable as iterate through map
 
-		var trollsMap = msg.TrollsMap;
-		for (var trollID in trollsMap) {
+		var itemsMap = msg.ItemsMap;
+		for (var itemID in itemsMap) {
 
 			var newTroll;
 			
-			troll = trollsMap[trollID];
-			if (trollID == self.localID) {
+			item = itemsMap[itemID];
+			if (itemID == self.localID) {
 				newTroll = new LocalTroll();
 			} else {
 				newTroll = new OtherTroll();
 			}
-			newTroll.init(troll.Coordinates.x,troll.Coordinates.y, self.context, self.board);
-			newTroll.id = trollID;
-			self.trolls[trollID] = newTroll;
+			newTroll.init(item.Coordinates.x, item.Coordinates.y, self.context, self.board);
+			newTroll.id = itemID;
+			self.items[itemID] = newTroll;
 
 		}
 	}
@@ -179,7 +179,7 @@ var TrollVillageModule = function(widgetDiv) {
 		this.drawBoard();
 
 		trollConnection = new TrollConnection();
-		trollConnection.init({"trolls": this.recieveTrolls,
+		trollConnection.init({"items": this.recieveItems,
 							  "update": this.recieveUpdate,
 							  "ping": this.recievePing} );
 	}

@@ -3,10 +3,6 @@ package trolls
 import (
         "fmt"
         "io"
-        "log"
-        "os"
-        "math"
-        "encoding/json"
 
         "code.google.com/p/go.net/websocket"
 )
@@ -16,34 +12,6 @@ const maxTrolls = 9
 
 var maxId int = 0
 
-
-
-// Troll client JSON data
-type TrollData struct {
-    Name        string  // used names: {"DELETE": indicates to client to delete troll}
-    Color       string
-    Coordinates map[string]int
-    Messages    []string
-    Points      int64
-}
-// Create new TrollData from Troll
-func NewTrollData(troll *Troll) *TrollData {
-    log.Println("*** NewTrollData *****")
-
-    coordinates     := make(map[string]int)
-    coordinates["x"] = int(math.Mod(float64(troll.id), 9))
-    coordinates["y"] = 0
-    messages        := make([]string, 5)
-    td := TrollData{"no-name", "#FF00FF", coordinates, messages, 0}
-
-    encodedTd, err := json.MarshalIndent(td, "", " ")
-    if err != nil {
-        fmt.Println("****** err *****", err)
-    }
-    os.Stdout.Write(encodedTd)
-
-    return &td
-}
 
 
 // Troll client.
@@ -68,7 +36,7 @@ func NewTroll(ws *websocket.Conn, server *Server) *Troll {
         panic("server already has maximum number of trolls")
     }
     maxId++
-    
+
     ch := make(chan *OutgoingMessage, channelBufSize)
     doneCh := make(chan bool)
 

@@ -15,40 +15,40 @@ type IncomingMessage struct {
 
 type OutgoingMessage struct {
 	Type 		string
-	TrollsMap 	map[string]TrollData
+	ItemsMap 	map[string]GridItem
 	LocalTroll  int
 }
 
-func NewOutgoingMessage(msgType string, localTroll int, trollsDataMap map[int]*TrollData) *OutgoingMessage {
-	var trolls map[string]TrollData
-	trolls = nil
-	if (trollsDataMap != nil) {
-		trolls = JSONifyTrollsDataMap(trollsDataMap)
+func NewOutgoingMessage(msgType string, localTroll int, gridItemsMap map[int]*GridItem) *OutgoingMessage {
+	var items map[string]GridItem
+	items = nil
+	if (gridItemsMap != nil) {
+		items = JSONifyGridItemsMap(gridItemsMap)
 	}
 
 	return &OutgoingMessage{
 		msgType,
-		trolls,
+		items,
 		localTroll,
 	}
 }
 
-func OutgoingTrollsMessage(localTroll int, trollsMap map[int]*TrollData) *OutgoingMessage {
-	return NewOutgoingMessage("trolls", localTroll, trollsMap)
+func OutgoingItemsMessage(localTroll int, itemsMap map[int]*GridItem) *OutgoingMessage {
+	return NewOutgoingMessage("items", localTroll, itemsMap)
 }
-func OutgoingUpdateMessage(localTroll int, trollsMap map[int]*TrollData) *OutgoingMessage {
-	return NewOutgoingMessage("update", localTroll, trollsMap)
+func OutgoingUpdateMessage(localTroll int, itemsMap map[int]*GridItem) *OutgoingMessage {
+	return NewOutgoingMessage("update", localTroll, itemsMap)
 }
 
 func OutgoingPingMessage(localTroll int) *OutgoingMessage {
-	nilMap := make(map[int]*TrollData)
+	nilMap := make(map[int]*GridItem)
 	nilMap = nil
 	return NewOutgoingMessage("ping", localTroll, nilMap)
 }
 
-func JSONifyTrollsDataMap(trollsDataMap map[int]*TrollData) map[string]TrollData {
-	m := make(map[string]TrollData)
-	for trollID, trollData := range trollsDataMap {
+func JSONifyGridItemsMap(gridItemsMap map[int]*GridItem) map[string]GridItem {
+	m := make(map[string]GridItem)
+	for trollID, trollData := range gridItemsMap {
 		trollIDString := strconv.Itoa(trollID) // json object can't have ints as keys
 		
 		if (trollData != nil) { // nil if we're signaling this troll removed

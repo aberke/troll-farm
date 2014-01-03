@@ -30,19 +30,19 @@ update message:
 {
 	"Type": "update",
 	"LocalTroll": 0,
-	"TrollsMap": troll-map-update (includes only trolls that have been updated since last message),
+	"ItemsMap": item-map-update (includes only items that have been updated since last message),
 }
 trolls message:
 {
-	"Type": "trolls",
+	"Type": "items",
 	"LocalTroll": trollID,
-	"TrollsMap": troll-map,
+	"ItemsMap": item-map,
 }
 ping:
 {
 	"Type": "ping",
 	"LocalTroll": trollID,
-	"TrollsMap": [] (empty map)
+	"ItemsMap": [] (empty map)
 }
 -----------------
 

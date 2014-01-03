@@ -11,17 +11,15 @@ import (
 
 const NEW_CONNECTION_ENDPOINT = "/connect";
 
-const GRID_WIDTH  = 10
-const GRID_HEIGHT = 10
 
 
 // troll server
 type Server struct {
         trolls    		map[int]*Troll
-        trollsDataMap	map[int]*TrollData
-        updateMap		map[int]*TrollData
 
-        grid			[][]bool // indicates whether a given spot is empty on the grid
+        gridItemsMap	map[int]*GridItem
+        updateMap		map[int]*GridItem
+        grid			[][]int // (x,y) position mapped to key of GridItem in gridItemsMap
 
         addCh     		chan *Troll
         delCh     		chan *Troll
@@ -33,15 +31,10 @@ type Server struct {
 // Create new troll server.
 func NewServer() *Server {
 	trolls := make(map[int]*Troll)
-	trollsDataMap := make(map[int]*TrollData)
-	updateMap := make(map[int]*TrollData)
+	gridItemsMap := make(map[int]*GridItem)
+	updateMap := make(map[int]*GridItem)
 
-	// Allocate the top-level slice.
-	grid := make([][]bool, GRID_HEIGHT)  // One row per unit of y.
-	// Loop over the rows, allocating the slice for each row.
-	for i := range grid {
-		grid[i] = make([]bool, GRID_WIDTH)
-	}
+	grid := NewGrid()
 
 	addCh := make(chan *Troll)
 	delCh := make(chan *Troll)
@@ -51,7 +44,7 @@ func NewServer() *Server {
 
 	return &Server{
 		trolls,
-		trollsDataMap,
+		gridItemsMap,
 		updateMap,
 		grid,
 		addCh,
@@ -84,9 +77,9 @@ func (s *Server) sendAll(msg *OutgoingMessage) {
 		t.Write(msg)
 	}
 }
-func (s *Server) sendTrollsMessage(trollID int) {
+func (s *Server) sendItemsMessage(trollID int) {
 	var msg *OutgoingMessage
-	msg = OutgoingTrollsMessage(trollID, s.trollsDataMap)
+	msg = OutgoingItemsMessage(trollID, s.gridItemsMap)
 	s.trolls[trollID].Write(msg)
 }
 func (s *Server) sendUpdateMessage() {
@@ -95,7 +88,7 @@ func (s *Server) sendUpdateMessage() {
 	s.sendAll(msg)
 
 	// clear out updateMap
-	s.updateMap = make(map[int]*TrollData)
+	s.updateMap = make(map[int]*GridItem)
 }
 
 func (s *Server) recievePingMessage(trollID int) {
@@ -103,8 +96,8 @@ func (s *Server) recievePingMessage(trollID int) {
 	msg = OutgoingPingMessage(trollID)
 	s.trolls[trollID].Write(msg)
 }
-func (s *Server) recieveTrollsMessage(trollID int) {
-	s.sendTrollsMessage(trollID)
+func (s *Server) recieveItemsMessage(trollID int) {
+	s.sendItemsMessage(trollID)
 }
 
 func (s *Server) recieveMessageMessage(trollID int, data map[string]string) {
@@ -115,30 +108,30 @@ func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
 	moveX, _ := strconv.Atoi(data["x"])
 	moveY, _ := strconv.Atoi(data["y"])
 	// retrieve troll client's current position
-	currentX := s.trollsDataMap[trollID].Coordinates["x"]
-	currentY := s.trollsDataMap[trollID].Coordinates["y"]
+	currentX := s.gridItemsMap[trollID].Coordinates["x"]
+	currentY := s.gridItemsMap[trollID].Coordinates["y"]
 	// calculate requested new position coordinates
 	requestedX := (currentX + moveX)
 	requestedY := (currentY + moveY)
 
 	// collision detection with grid boundaries
 	if (requestedX < 0 || requestedX >= GRID_WIDTH || requestedY < 0 || requestedY >= GRID_HEIGHT) {
-		s.sendTrollsMessage(trollID)
+		s.sendItemsMessage(trollID)
 		return
 	}
 	// collision detection with other trolls
-	if (s.grid[requestedX][requestedY]) { 
-		s.sendTrollsMessage(trollID)
+	if (s.grid[requestedX][requestedY] != 0) { 
+		s.sendItemsMessage(trollID)
 		return
 	} else {
 		// move that troll
-		s.grid[currentX][currentY] = false
-		s.grid[requestedX][requestedY] = true
+		s.grid[currentX][currentY] = 0
+		s.grid[requestedX][requestedY] = trollID
 
-		s.trollsDataMap[trollID].Coordinates["x"] = requestedX
-		s.trollsDataMap[trollID].Coordinates["y"] = requestedY
+		s.gridItemsMap[trollID].Coordinates["x"] = requestedX
+		s.gridItemsMap[trollID].Coordinates["y"] = requestedY
 
-		s.updateMap[trollID] = s.trollsDataMap[trollID]
+		s.updateMap[trollID] = s.gridItemsMap[trollID]
 		s.sendUpdateMessage()
 	}	
 }
@@ -151,8 +144,8 @@ func (s *Server) recieveMessage(msg *IncomingMessage) {
 	switch msg.Type {
 	case "ping":
 		s.recievePingMessage(msg.LocalTroll)
-	case "trolls":
-		s.recieveTrollsMessage(msg.LocalTroll)
+	case "items":
+		s.recieveItemsMessage(msg.LocalTroll)
 	case "message":
 		s.recieveMessageMessage(msg.LocalTroll, msg.Data)
 	case "move":
@@ -164,35 +157,35 @@ func (s *Server) recieveMessage(msg *IncomingMessage) {
 func (s *Server) addTrollConnection(t *Troll) {
 	log.Println("addTrollConnection *****")
 
-	td := NewTrollData(t)
+	gi := t.NewGridItem()
 	// find a cell for the new troll
-	x := td.Coordinates["x"]
-	for (s.grid[x][0]) {
+	x := gi.Coordinates["x"]
+	for (s.grid[x][0] != 0) {
 		x = int(math.Mod(float64(x + 1), 9))
 	}
-	s.grid[x][0] = true
-	td.Coordinates["x"] = x
+	s.grid[x][0] = t.id
+	gi.Coordinates["x"] = x
 
 
-	s.updateMap[t.id] = td
+	s.updateMap[t.id] = gi
 	s.sendUpdateMessage()
 
 	s.trolls[t.id] = t
-	s.trollsDataMap[t.id] = td
+	s.gridItemsMap[t.id] = gi
 	log.Println("Added new troll - Now", len(s.trolls), "trolls connected.")
-	s.sendTrollsMessage(t.id)
+	s.sendItemsMessage(t.id)
 }
 func (s *Server) deleteTrollConnection(t *Troll) {
-	td := s.trollsDataMap[t.id]
+	gi := s.gridItemsMap[t.id]
 
 	// set troll to be deleted in updateMap
-	td.Name = "DELETE"
-	s.updateMap[t.id] = td
+	gi.Name = "DELETE"
+	s.updateMap[t.id] = gi
 
 	// delete troll
-	s.grid[td.Coordinates["x"]][td.Coordinates["y"]] = false
+	RemoveGridItem(s.grid, gi)
 	delete(s.trolls, t.id)
-	delete(s.trollsDataMap, t.id)
+	delete(s.gridItemsMap, t.id)
 
 	// send update message
 	s.sendUpdateMessage()
