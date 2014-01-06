@@ -84,17 +84,23 @@ func NewGridItem (name string, x int, y int) *GridItem{
 
     return &gi
 }
+func (g *Grid) bananaCollision() {
+    log.Println("bananaCollision: TODO")
+}
+func (g *Grid) foodButtonCollision() {
+    log.Println("foodButtonPressed")
+    g.generateBanana()
+}
+/* places a banana at the bottom left corner or next best empty spot */
+func (g *Grid) generateBanana() {
+    x, y := g.emptySpot(0, GRID_HEIGHT - 1)
+    g.funCells[x][y] = BANANA_ID
+}
 /* Takes as parameters the coordinates of the desired space.  Returns next best empty space */
 func (g *Grid) emptySpot(x int, y int) (retX int, retY int) {
     count := 0
 
-    for (g.trollCells[x][y] !=0 || g.funCells[x][y] != 0) {
-        if (count > (GRID_WIDTH*GRID_HEIGHT)) {
-            panic("No more empty spots on grid")
-        }
-        count += 1
-
-        x += 1
+    for (count < GRID_WIDTH*GRID_HEIGHT) {
         if (x >= GRID_WIDTH) {
             x = 0
             y += 1
@@ -103,8 +109,14 @@ func (g *Grid) emptySpot(x int, y int) (retX int, retY int) {
             y = 0
             x = int(math.Mod(float64(x + 1), GRID_WIDTH))
         }
+
+        if ((g.trollCells[x][y] ==0 && g.funCells[x][y] == 0)) {
+            return x, y
+        }
+        x += 1
+        count += 1
     }
-    return x, y
+    panic("No more empty spots on grid")
 }
 
 /*********************************************************/
@@ -138,6 +150,16 @@ func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) bool {
     // collision detection with other trolls
     if (g.trollCells[requestedX][requestedY] != 0) { 
         return false
+    }
+
+    // check if ran into non-troll item
+    nonTrollItem := g.funCells[requestedX][requestedY]
+    if (nonTrollItem != 0) {
+        log.Println("nonTrollItem: ", nonTrollItem)
+    }
+    switch nonTrollItem {
+        case FOODBUTTON_ID: g.foodButtonCollision()
+        case BANANA_ID:     g.bananaCollision()
     }
 
     // move that troll
