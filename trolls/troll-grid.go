@@ -15,6 +15,8 @@ const GRID_HEIGHT = 10
 const FOODBUTTON_ID = -1
 const BANANA_ID     = -2
 
+const BANANA_REWARD = 1 // troll gets 1 point per banana
+
 
 /* The grid is a 2D array that maps (x,y) positions to the key of a GridItem in the gridItemsMap */
 func createCells () [][]int {
@@ -84,17 +86,33 @@ func NewGridItem (name string, x int, y int) *GridItem{
 
     return &gi
 }
-func (g *Grid) bananaCollision() {
+func (g *Grid) bananaCollision(trollID int) {
     log.Println("bananaCollision: TODO")
+    g.removeBanana()
+
+    // give the troll that collided with the banana points
+    gi := g.itemsMap[trollID]
+    gi.Points += BANANA_REWARD
+    g.updateMap[trollID] = gi
 }
 func (g *Grid) foodButtonCollision() {
     log.Println("foodButtonPressed")
-    g.generateBanana()
+    if (g.itemsMap[BANANA_ID] == nil) {
+        g.generateBanana()    
+    }
+}
+func (g *Grid) removeBanana() {
+    gi := g.itemsMap[BANANA_ID]
+    g.removeFromCell(g.funCells, gi)
+    delete(g.itemsMap, BANANA_ID)
 }
 /* places a banana at the bottom left corner or next best empty spot */
 func (g *Grid) generateBanana() {
     x, y := g.emptySpot(0, GRID_HEIGHT - 1)
+    banana := NewGridItem("BANANA", x, y)
+    g.itemsMap[BANANA_ID] = banana
     g.funCells[x][y] = BANANA_ID
+    g.updateMap[BANANA_ID] = banana
 }
 /* Takes as parameters the coordinates of the desired space.  Returns next best empty space */
 func (g *Grid) emptySpot(x int, y int) (retX int, retY int) {
@@ -134,7 +152,7 @@ func (g *Grid) ItemsMap() map[int]*GridItem{
 
 // returns false if move is not valid (collision)
 func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) bool {
-
+    log.Println("MoveTroll")
     gi :=g.itemsMap[trollID]
     // retrieve troll client's current position
     currentX := gi.Coordinates["x"]
@@ -159,7 +177,7 @@ func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) bool {
     }
     switch nonTrollItem {
         case FOODBUTTON_ID: g.foodButtonCollision()
-        case BANANA_ID:     g.bananaCollision()
+        case BANANA_ID:     g.bananaCollision(trollID)
     }
 
     // move that troll

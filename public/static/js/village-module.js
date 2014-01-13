@@ -72,15 +72,21 @@ var TrollVillageModule = function(widgetDiv) {
 		}
 	}
 	this.updateItem = function(itemID, item) {
+		console.log(item)
 		if (item.Name == "DELETE") 
 			return this.removeItem(itemID);
 
 		if (self.items[itemID]) {
-			self.items[itemID].update(item.Coordinates.x, item.Coordinates.y);
+			return self.items[itemID].update(item.Coordinates.x, item.Coordinates.y, item.Points);
+		}
+
+		if (itemID == -2) {
+			self.items[itemID] = new Banana();
 		} else {
 			self.items[itemID] = new OtherTroll();
-			self.items[itemID].init(item.Coordinates.x, item.Coordinates.y);
-		}	
+		}
+
+		self.items[itemID].init(item.Coordinates.x, item.Coordinates.y, item.Points);
 	}
 
 	this.recieveUpdate = function(msg) {
@@ -121,7 +127,7 @@ var TrollVillageModule = function(widgetDiv) {
 			} else {
 				newItem = new OtherTroll();
 			}
-			newItem.init(item.Coordinates.x, item.Coordinates.y);
+			newItem.init(item.Coordinates.x, item.Coordinates.y, item.Points);
 			newItem.id = itemID;
 			self.items[itemID] = newItem;
 
@@ -176,16 +182,16 @@ var TrollVillageModule = function(widgetDiv) {
             }
         }
         this.troll.onload = function() {
-                imageLoaded();
+			imageLoaded();
         }
         this.otherTroll.onload = function() {
-                imageLoaded();
+			imageLoaded();
         }
         this.foodButton.onload = function() {
-                imageLoaded();
+			imageLoaded();
         }
         this.banana.onload = function() {
-                imageLoaded();
+			imageLoaded();
         }
 
         // Set images src
@@ -202,7 +208,7 @@ var TrollVillageModule = function(widgetDiv) {
 		StaticDrawable.prototype.context= this.staticContext;
 		LocalTroll.prototype.img 		= imageRepository.troll;
 		OtherTroll.prototype.img 		= imageRepository.otherTroll;
-		Banana.prototype.img 	 		= imageRepository.food;
+		Banana.prototype.img 	 		= imageRepository.banana;
 		FoodButton.prototype.img 		= imageRepository.foodButton;
 
 
@@ -218,12 +224,14 @@ function Drawable() {
 	this.padding = 5;
 	this.x_px;
 	this.y_px;
-	this.width = 20;
-	this.height = 20;
+	this.width = 15;
+	this.height = 15;
 	this.board;
 
 	this.img;
 	this.context;
+
+	this.points = 0;
 
 	this.erase = function() {
 		this.context.clearRect(this.x_px, this.y_px, this.width, this.height);
@@ -241,14 +249,27 @@ function Drawable() {
 	this.setImage = function(img) {
 		this.img = img;
 	}
-	this.update = function(x, y) {
+	this.update = function(x, y, points) {
 		this.x = x;
 		this.y = y;
+		console.log('update', points)
+		if (points && points > this.points && points < 16) { // max points right now is 15 i guess...
+			// update drawing of troll based on points
+			this.points = points;
+			this.width = 15 + points;
+			this.height = 15 + points;
+			console.log(this)
+		}
 		this.draw();
 	}
-	this.init = function(x, y) {
+	this.init = function(x, y, points) {
 		this.x = x;
 		this.y = y;
+		if (points) {
+			this.points = points;
+			this.width = this.width + points;
+			this.height = this.height + points;
+		}
 		this.draw();
 	}
 }

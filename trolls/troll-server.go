@@ -112,7 +112,7 @@ func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
 
 // when troll client recieves message, sends the IncomingMessage to server to be handled
 func (s *Server) recieveMessage(msg *IncomingMessage) {
-	log.Println("incoming msg: ", msg)
+	//log.Println("incoming msg: ", msg)
 
 	switch msg.Type {
 	case "ping":
@@ -147,7 +147,7 @@ func (s *Server) deleteTrollConnection(t *Troll) {
 
 // Listen and serve - serves client connection and broadcast request.
 func (s *Server) Listen() {
-	log.Println("Troll server listening...")
+	log.Println("Troll server listening........")
 
 	// websocket handler
 	onConnect := func(ws *websocket.Conn) {
