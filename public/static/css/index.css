@@ -1,6 +1,18 @@
 body {
 	font-family: Arial;
+	max-width: 600px;
+	margin: auto;
 }
-#troll-village-widget-container {
-	border: 4px solid purple;
+h1 {
+	color: gray;
+	border-bottom: 3px solid gray;
+}
+
+code {
+	max-width: 500px;
+	display: block;
+	border: 2px solid gray;
+	border-radius: 8px;
+	padding: 8px;
+	background-color: ghostwhite;
 }
