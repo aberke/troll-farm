@@ -8,36 +8,41 @@ import (
         "code.google.com/p/go.net/websocket"
 )
 
-const NEW_CONNECTION_ENDPOINT = "/connect";
-
+const NEW_CONNECTION_ENDPOINT = "/connect"
 
 
 // troll server
 type Server struct {
-        trolls    		map[int]*Troll
-		grid 			*Grid
-        addCh     		chan *Troll
-        delCh     		chan *Troll
-        messageCh 		chan *IncomingMessage
-        doneCh    		chan bool
-        errCh     		chan error
+	trolls    		map[int]*Troll
+	gridMap  	 	map[int]*Grid
+	trollToGrid  	map[int]int
+	addCh     		chan *Troll
+	delCh     		chan *Troll
+	messageCh 		chan *IncomingMessage
+	doneCh    		chan bool
+	errCh     		chan error
 }
 
 // Create new troll server.
 func NewServer() *Server {
-	trolls := make(map[int]*Troll)
+	trolls 		:= make(map[int]*Troll)
 
-	grid := NewGrid()
+	gridMap 	:= make(map[int]*Grid)
+	g 	 		:= NewGrid()
+	gridMap[g.id] = g
 
-	addCh := make(chan *Troll)
-	delCh := make(chan *Troll)
-	messageCh := make(chan *IncomingMessage)
-	doneCh := make(chan bool)
-	errCh := make(chan error)
+	trollToGrid := make(map[int]int)
+
+	addCh 		:= make(chan *Troll)
+	delCh 		:= make(chan *Troll)
+	messageCh 	:= make(chan *IncomingMessage)
+	doneCh 		:= make(chan bool)
+	errCh 		:= make(chan error)
 
 	return &Server{
 		trolls,
-		grid,
+		gridMap,
+		trollToGrid,
 		addCh,
 		delCh,
 		messageCh,
@@ -63,24 +68,31 @@ func (s *Server) Done() {
 func (s *Server) Err(err error) {
         s.errCh <- err
 }
-func (s *Server) sendAll(msg *OutgoingMessage) {
-	for _, t := range s.trolls {
-		t.Write(msg)
+/* send msg to all the trolls in the given grid */
+func (s *Server) sendAll(msg *OutgoingMessage, gridId int) {
+	for tId, gId := range s.trollToGrid {
+		if (gId == gridId) {
+			s.trolls[tId].Write(msg)
+		}
 	}
 }
-
-func (s *Server) sendUpdateMessage() {
+func (s *Server) sendErrorMessage (tId int) {
+	msg := OutgoingErrorMessage()
+	s.trolls[tId].Write(msg)
+}
+func (s *Server) sendUpdateMessage(gId int) {
 
 	var msg *OutgoingMessage
-	msg = OutgoingUpdateMessage(0, s.grid.UpdateMap())
-	s.sendAll(msg)
+	msg = OutgoingUpdateMessage(0, s.gridMap[gId].UpdateMap())
+	s.sendAll(msg, gId)
 
 	// clear out updateMap
-	s.grid.ClearUpdateMap()
+	s.gridMap[gId].ClearUpdateMap()
 }
 func (s *Server) sendItemsMessage(trollID int) {
 	var msg *OutgoingMessage
-	msg = OutgoingItemsMessage(trollID, s.grid.ItemsMap())
+	gId := s.trollToGrid[trollID]
+	msg = OutgoingItemsMessage(trollID, s.gridMap[gId].ItemsMap())
 	s.trolls[trollID].Write(msg)
 }
 
@@ -98,15 +110,21 @@ func (s *Server) recieveMessageMessage(trollID int, data map[string]string) {
 }
 func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
 	// extract the troll client's move from the message data
-	moveX, _ := strconv.Atoi(data["x"])
-	moveY, _ := strconv.Atoi(data["y"])
+	moveX, errX := strconv.Atoi(data["x"])
+	moveY, errY := strconv.Atoi(data["y"])
+	if (errX != nil || errY != nil) {
+		s.sendErrorMessage(trollID)
+		return
+	}
 
-	validMove := s.grid.MoveTroll(trollID, moveX, moveY)
+	gId := s.trollToGrid[trollID]
+
+	validMove := s.gridMap[gId].MoveTroll(trollID, moveX, moveY)
 	if (!validMove) {
 		s.sendItemsMessage(trollID)
 		return
 	}
-	s.sendUpdateMessage()	
+	s.sendUpdateMessage(gId)	
 }
 
 
@@ -130,19 +148,35 @@ func (s *Server) recieveMessage(msg *IncomingMessage) {
 func (s *Server) addTrollConnection(t *Troll) {
 	log.Println("addTrollConnection *****")
 
-	s.grid.AddTroll(t.id)
-	s.sendUpdateMessage()
+	tId := t.id
+	gId := 0
 
+	for (s.gridMap[gId].IsFull()) {
+		gId ++
+		if (! (len(s.gridMap) > gId)) {
+			g := NewGrid()
+			s.gridMap[g.id] = g
+		}
+	}
+
+	s.gridMap[gId].AddTroll(tId)
+	s.trollToGrid[tId] = gId
 	s.trolls[t.id] = t
+	s.sendUpdateMessage(gId)
+
 	log.Println("Added new troll - Now", len(s.trolls), "trolls connected.")
-	s.sendItemsMessage(t.id)
+	s.sendItemsMessage(tId)
 }
 func (s *Server) deleteTrollConnection(t *Troll) {
-	s.grid.DeleteTroll(t.id)
-	delete(s.trolls, t.id)
+	tId := t.id
+	gId := s.trollToGrid[tId]
+
+	s.gridMap[gId].DeleteTroll(tId)
+	delete(s.trollToGrid, tId)
+	delete(s.trolls, tId)
 
 	// send update message
-	s.sendUpdateMessage()
+	s.sendUpdateMessage(gId)
 }
 
 // Listen and serve - serves client connection and broadcast request.

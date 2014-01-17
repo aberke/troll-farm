@@ -8,8 +8,10 @@ import (
         "encoding/json"
 )
 
-const GRID_WIDTH  = 10
-const GRID_HEIGHT = 10
+const GRID_WIDTH    = 10
+const GRID_HEIGHT   = 10
+
+const GRID_CAPACITY = 10 // if there are this many items, IsFull returns true
 
 // any non-troll GridItem (goes in funCells) has negative id
 const FOODBUTTON_ID = -1
@@ -29,14 +31,17 @@ func createCells () [][]int {
     return cells
 }
 
+var maxGridId int = 0
 
 /* The Grid has
+    id
     trollCells - a 2d array to map an (x,y) cell to id of troll-GridItems there (will be positive ID)
     funCells   - a 2d array to map an (x,y) cell to id of any non-troll GridItem there (will be negative ID)
     itemsMap   - maps ids of GridItems to GridItem
     update     - like itemsMap but only for recent changes
 */
 type Grid struct {
+    id              int
     trollCells      [][]int
     funCells        [][]int
     itemsMap        map[int]*GridItem
@@ -48,7 +53,8 @@ func NewGrid () *Grid {
     itemsMap    := make(map[int]*GridItem)
     updateMap   := make(map[int]*GridItem)
 
-    g :=  &Grid{ trollCells, funCells, itemsMap, updateMap }
+    g :=  &Grid{ maxGridId, trollCells, funCells, itemsMap, updateMap }
+    maxGridId++
 
     // add the food button to the grid
     foodButton := NewGridItem("FOODBUTTON", 9, 9)
@@ -145,6 +151,13 @@ func (g *Grid) UpdateMap() map[int]*GridItem{
 }
 func (g *Grid) ItemsMap() map[int]*GridItem{
     return g.itemsMap
+}
+/* returns boolean -- true if full, false otherwise */
+func (g *Grid) IsFull() bool {
+    if (len(g.itemsMap) >= GRID_CAPACITY) {
+        return true
+    }
+    return false
 }
 /*********************************************************/
 // setter functions

@@ -234,7 +234,7 @@ function Drawable() {
 	this.points = 0;
 
 	this.erase = function() {
-		this.context.clearRect(this.x_px, this.y_px, this.width, this.height);
+		this.context.clearRect(this.x_px, this.y_px, this.board.cellSize - 2, this.board.cellSize - 2);
 	}
 
 	this.draw = function() {
@@ -277,6 +277,8 @@ function StaticDrawable() {
 }
 StaticDrawable.prototype = new Drawable();
 function Banana() {
+	this.width = 25;
+	this.height = 25;
 }
 Banana.prototype = new Drawable();
 function FoodButton() {

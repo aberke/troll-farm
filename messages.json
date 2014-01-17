@@ -44,6 +44,12 @@ ping:
 	"LocalTroll": trollID,
 	"ItemsMap": [] (empty map)
 }
+error:
+{
+	"Type": "error",
+	"LocalTroll": 0,
+	"ItemsMap": nil
+}
 -----------------
 
 client -> server

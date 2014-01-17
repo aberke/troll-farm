@@ -32,6 +32,9 @@ func NewOutgoingMessage(msgType string, localTroll int, gridItemsMap map[int]*Gr
 		localTroll,
 	}
 }
+func OutgoingErrorMessage() *OutgoingMessage {
+	return NewOutgoingMessage("error", 0, nil)
+}
 
 func OutgoingItemsMessage(localTroll int, itemsMap map[int]*GridItem) *OutgoingMessage {
 	return NewOutgoingMessage("items", localTroll, itemsMap)
