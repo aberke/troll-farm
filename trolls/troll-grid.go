@@ -11,7 +11,7 @@ import (
 const GRID_WIDTH    = 10
 const GRID_HEIGHT   = 10
 
-const GRID_CAPACITY = 3 // if there are this many items, IsFull returns true
+const GRID_CAPACITY = 5 // if there are this many items, IsFull returns true
 
 // any non-troll GridItem (goes in funCells) has negative id
 const FOODBUTTON_ID = -1
