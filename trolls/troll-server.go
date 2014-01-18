@@ -27,9 +27,11 @@ type Server struct {
 func NewServer() *Server {
 	trolls 		:= make(map[int]*Troll)
 
+	/* Server starts off with no Grids
+		Grids are added and removed based on trolls connecting/disconnecting */
 	gridMap 	:= make(map[int]*Grid)
-	g 	 		:= NewGrid()
-	gridMap[g.id] = g
+	// g 	 		:= NewGrid()
+	// gridMap[g.id] = g
 
 	trollToGrid := make(map[int]int)
 
@@ -149,14 +151,16 @@ func (s *Server) addTrollConnection(t *Troll) {
 	log.Println("addTrollConnection *****")
 
 	tId := t.id
-	gId := 0
+	gId := minGridId
 
-	for (s.gridMap[gId].IsFull()) {
+	for ((gId < totalGrids) && s.gridMap[gId].IsFull()) {
 		gId ++
-		if (! (len(s.gridMap) > gId)) {
-			g := NewGrid()
-			s.gridMap[g.id] = g
-		}
+	}
+
+	if (s.gridMap[gId] == nil) {
+		g := NewGrid()
+		s.gridMap[gId] = g // I expect gId == g.id
+		log.Println("******** Added new Grid - Now ", len(s.gridMap), "grids.")
 	}
 
 	s.gridMap[gId].AddTroll(tId)
@@ -164,7 +168,7 @@ func (s *Server) addTrollConnection(t *Troll) {
 	s.trolls[t.id] = t
 	s.sendUpdateMessage(gId)
 
-	log.Println("Added new troll - Now", len(s.trolls), "trolls connected.")
+	log.Println("Added new troll to grid", gId, "- Now", len(s.trolls), "trolls connected.")
 	s.sendItemsMessage(tId)
 }
 func (s *Server) deleteTrollConnection(t *Troll) {
@@ -177,6 +181,13 @@ func (s *Server) deleteTrollConnection(t *Troll) {
 
 	// send update message
 	s.sendUpdateMessage(gId)
+	log.Println("Removed troll from grid", gId, "Now", len(s.trolls), "trolls connected.")
+
+	/* if grid is empty and the last grid -- then remove it */
+	if (s.gridMap[gId].SafelyRemove()) {
+		delete(s.gridMap, gId)
+		log.Println("Removed Grid - Now ", len(s.gridMap), "grids.")
+	}
 }
 
 // Listen and serve - serves client connection and broadcast request.

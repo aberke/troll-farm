@@ -11,7 +11,7 @@ import (
 const GRID_WIDTH    = 10
 const GRID_HEIGHT   = 10
 
-const GRID_CAPACITY = 10 // if there are this many items, IsFull returns true
+const GRID_CAPACITY = 3 // if there are this many items, IsFull returns true
 
 // any non-troll GridItem (goes in funCells) has negative id
 const FOODBUTTON_ID = -1
@@ -31,7 +31,9 @@ func createCells () [][]int {
     return cells
 }
 
-var maxGridId int = 0
+var totalGrids int = 0
+var minGridId  int = 0
+var maxGridId  int = -1 // there are no grids at first
 
 /* The Grid has
     id
@@ -53,8 +55,9 @@ func NewGrid () *Grid {
     itemsMap    := make(map[int]*GridItem)
     updateMap   := make(map[int]*GridItem)
 
+    maxGridId ++
+    totalGrids ++
     g :=  &Grid{ maxGridId, trollCells, funCells, itemsMap, updateMap }
-    maxGridId++
 
     // add the food button to the grid
     foodButton := NewGridItem("FOODBUTTON", 9, 9)
@@ -62,6 +65,26 @@ func NewGrid () *Grid {
     g.funCells[9][9] = FOODBUTTON_ID
 
     return g
+}
+/* if grid is safe to remove -- gets ready for removal by decrementing maxGridId and returns true 
+    otherwise returns false
+    only ever called by server right before potential removal (server removes after call iff returns true)
+*/
+func (g *Grid) SafelyRemove () bool{
+    /* if there is a grid after this one, we don't want to leave it as an island */
+    if (g.id < maxGridId) {
+        return false
+    }
+
+    /* if there are any trolls still in the itemsMap, then can't remove */
+    for itemId, _ := range g.itemsMap {
+        if (itemId > 0) {
+            return false
+        }
+    }
+    maxGridId --
+    totalGrids --
+    return true
 }
 
 
