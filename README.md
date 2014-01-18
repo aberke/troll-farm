@@ -18,34 +18,31 @@ I mean I wanted to learn Go and play with web sockets and make something interes
 
 TODO
 ---
-Test sending bad messages to server.
-AKA test error handling of malicious messages
+
+* Allow trolls to move from Grid to Grid
+
+* TODO: MAKE WORK ON MOBILE
+
+* Test sending bad messages to server.
+AKA test error handling of malformed/malicious 
+
+* Write tests
 
 
-Plans
+Structure
 ---
 
-TODO: MAKE WORK ON MOBILE
+Each troll-client (Troll) handles its own websocket connection
 
+The server has (among other things like channels): 
 
+* a map of trolls [trollID -> *Troll]
+* a map of grids  [gridID  -> *Grid]	
+* a map from troll to grid it lives in [trollID -> gridID]
 
+Grid -> Troll is a 1-to-many relationship.  Many Trolls and other items (see GRID_CAPACITY) live in a Grid
 
-troll clients
-
-server
-	
-trolls 		 := map[int]*Troll
-
-gridMap  	 := map[int]*Grid 	[gridID  -> Grid]	
-trollToGrid  := map[int][int]	[trollID -> GridId]
-
-
-
-
-
-grid
-
-
+update messages should only be sent to the trolls in the grid that recieved an update
 
 
 
