@@ -94,7 +94,6 @@ func NewGridItem (name string, x int, y int) *GridItem{
     return &gi
 }
 func (g *Grid) bananaCollision(trollID int) {
-    log.Println("bananaCollision: TODO")
     g.removeBanana()
 
     // give the troll that collided with the banana points

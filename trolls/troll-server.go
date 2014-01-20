@@ -84,6 +84,9 @@ func (s *Server) sendErrorMessage (tId int) {
 }
 func (s *Server) sendUpdateMessage(gId int) {
 	grid := s.gridMap.Grid(gId)
+	if (grid == nil) {
+		return
+	}
 
 	var msg *OutgoingMessage
 	msg = OutgoingUpdateMessage(0, grid.UpdateMap())
@@ -157,10 +160,10 @@ func (s *Server) addTrollConnection(t *Troll) {
 	tId := t.id
 	/* Add Troll to a Grid in Grid Map and get back the id of that Grid */
 	gId := s.gridMap.AddTroll(tId)
+	s.sendUpdateMessage(gId)
 
 	s.trollToGrid[tId] = gId
 	s.trolls[t.id] = t
-	s.sendUpdateMessage(gId)
 
 	log.Println("Added new troll to grid", gId, "- Now", len(s.trolls), "trolls connected.")
 	s.sendItemsMessage(tId)
