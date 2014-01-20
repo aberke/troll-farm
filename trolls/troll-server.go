@@ -14,7 +14,8 @@ const NEW_CONNECTION_ENDPOINT = "/connect"
 // troll server
 type Server struct {
 	trolls    		map[int]*Troll
-	gridMap  	 	map[int]*Grid
+	//gridMap  	 	map[int]*Grid
+	gridMap			*GridMap
 	trollToGrid  	map[int]int
 	addCh     		chan *Troll
 	delCh     		chan *Troll
@@ -25,21 +26,20 @@ type Server struct {
 
 // Create new troll server.
 func NewServer() *Server {
-	trolls 		:= make(map[int]*Troll)
+	trolls 				:= make(map[int]*Troll)
 
 	/* Server starts off with no Grids
 		Grids are added and removed based on trolls connecting/disconnecting */
-	gridMap 	:= make(map[int]*Grid)
-	// g 	 		:= NewGrid()
-	// gridMap[g.id] = g
+	//gridMap 	:= make(map[int]*Grid)
+	var gridMap *GridMap = NewGridMap()
 
-	trollToGrid := make(map[int]int)
+	trollToGrid 		:= make(map[int]int)
 
-	addCh 		:= make(chan *Troll)
-	delCh 		:= make(chan *Troll)
-	messageCh 	:= make(chan *IncomingMessage)
-	doneCh 		:= make(chan bool)
-	errCh 		:= make(chan error)
+	addCh 				:= make(chan *Troll)
+	delCh 				:= make(chan *Troll)
+	messageCh 			:= make(chan *IncomingMessage)
+	doneCh 				:= make(chan bool)
+	errCh 				:= make(chan error)
 
 	return &Server{
 		trolls,
@@ -83,18 +83,19 @@ func (s *Server) sendErrorMessage (tId int) {
 	s.trolls[tId].Write(msg)
 }
 func (s *Server) sendUpdateMessage(gId int) {
+	grid := s.gridMap.Grid(gId)
 
 	var msg *OutgoingMessage
-	msg = OutgoingUpdateMessage(0, s.gridMap[gId].UpdateMap())
+	msg = OutgoingUpdateMessage(0, grid.UpdateMap())
 	s.sendAll(msg, gId)
 
 	// clear out updateMap
-	s.gridMap[gId].ClearUpdateMap()
+	grid.ClearUpdateMap()
 }
 func (s *Server) sendItemsMessage(trollID int) {
 	var msg *OutgoingMessage
 	gId := s.trollToGrid[trollID]
-	msg = OutgoingItemsMessage(trollID, s.gridMap[gId].ItemsMap())
+	msg = OutgoingItemsMessage(trollID, s.gridMap.Grid(gId).ItemsMap())
 	s.trolls[trollID].Write(msg)
 }
 
@@ -121,11 +122,14 @@ func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
 
 	gId := s.trollToGrid[trollID]
 
-	validMove := s.gridMap[gId].MoveTroll(trollID, moveX, moveY)
+	// TODO: HAVE GridMap move Troll 
+	/* get back 2 items: gridId indicates which Grid Troll now lives on.  ValidMove is like err */
+	validMove := s.gridMap.Grid(gId).MoveTroll(trollID, moveX, moveY)
 	if (!validMove) {
 		s.sendItemsMessage(trollID)
 		return
 	}
+
 	s.sendUpdateMessage(gId)	
 }
 
@@ -151,19 +155,9 @@ func (s *Server) addTrollConnection(t *Troll) {
 	log.Println("addTrollConnection *****")
 
 	tId := t.id
-	gId := minGridId
+	/* Add Troll to a Grid in Grid Map and get back the id of that Grid */
+	gId := s.gridMap.AddTroll(tId)
 
-	for ((gId < totalGrids) && s.gridMap[gId].IsFull()) {
-		gId ++
-	}
-
-	if (s.gridMap[gId] == nil) {
-		g := NewGrid()
-		s.gridMap[gId] = g // I expect gId == g.id
-		log.Println("******** Added new Grid - Now ", len(s.gridMap), "grids.")
-	}
-
-	s.gridMap[gId].AddTroll(tId)
 	s.trollToGrid[tId] = gId
 	s.trolls[t.id] = t
 	s.sendUpdateMessage(gId)
@@ -175,19 +169,13 @@ func (s *Server) deleteTrollConnection(t *Troll) {
 	tId := t.id
 	gId := s.trollToGrid[tId]
 
-	s.gridMap[gId].DeleteTroll(tId)
+	s.gridMap.DeleteTroll(gId, tId)
 	delete(s.trollToGrid, tId)
 	delete(s.trolls, tId)
 
 	// send update message
 	s.sendUpdateMessage(gId)
 	log.Println("Removed troll from grid", gId, "Now", len(s.trolls), "trolls connected.")
-
-	/* if grid is empty and the last grid -- then remove it */
-	if (s.gridMap[gId].SafelyRemove()) {
-		delete(s.gridMap, gId)
-		log.Println("Removed Grid - Now ", len(s.gridMap), "grids.")
-	}
 }
 
 // Listen and serve - serves client connection and broadcast request.

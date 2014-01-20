@@ -11,32 +11,22 @@ import (
 const GRID_WIDTH    = 10
 const GRID_HEIGHT   = 10
 
+const DOOR_Y        = 5 // the Y value that doors live on
+
 const GRID_CAPACITY = 5 // if there are this many items, IsFull returns true
 
 // any non-troll GridItem (goes in funCells) has negative id
-const FOODBUTTON_ID = -1
-const BANANA_ID     = -2
-
+const FOODBUTTON_ID     = -1
+const BANANA_ID         = -2
+const DOOR_PREVIOUS_ID  = -3 // door to previous Grid
+const DOOR_NEXT_ID      = -4 // door to next Grid
+    
 const BANANA_REWARD = 1 // troll gets 1 point per banana
 
 
-/* The grid is a 2D array that maps (x,y) positions to the key of a GridItem in the gridItemsMap */
-func createCells () [][]int {
-    // Allocate the top-level slice.
-    cells := make([][]int, GRID_HEIGHT)  // One row per unit of y.
-    // Loop over the rows, allocating the slice for each row.
-    for i := range cells {
-        cells[i] = make([]int, GRID_WIDTH)
-    }
-    return cells
-}
-
-var totalGrids int = 0
-var minGridId  int = 0
-var maxGridId  int = -1 // there are no grids at first
 
 /* The Grid has
-    id
+    id         - corresponds to where Grid resides in the GridMap's list of Grids -- determined by GridMap 
     trollCells - a 2d array to map an (x,y) cell to id of troll-GridItems there (will be positive ID)
     funCells   - a 2d array to map an (x,y) cell to id of any non-troll GridItem there (will be negative ID)
     itemsMap   - maps ids of GridItems to GridItem
@@ -49,15 +39,13 @@ type Grid struct {
     itemsMap        map[int]*GridItem
     updateMap       map[int]*GridItem
 }    
-func NewGrid () *Grid {
+func NewGrid (gId int) *Grid {
     trollCells  := createCells()
     funCells    := createCells()
     itemsMap    := make(map[int]*GridItem)
     updateMap   := make(map[int]*GridItem)
 
-    maxGridId ++
-    totalGrids ++
-    g :=  &Grid{ maxGridId, trollCells, funCells, itemsMap, updateMap }
+    g :=  &Grid{ gId, trollCells, funCells, itemsMap, updateMap }
 
     // add the food button to the grid
     foodButton := NewGridItem("FOODBUTTON", 9, 9)
@@ -66,25 +54,15 @@ func NewGrid () *Grid {
 
     return g
 }
-/* if grid is safe to remove -- gets ready for removal by decrementing maxGridId and returns true 
-    otherwise returns false
-    only ever called by server right before potential removal (server removes after call iff returns true)
-*/
-func (g *Grid) SafelyRemove () bool{
-    /* if there is a grid after this one, we don't want to leave it as an island */
-    if (g.id < maxGridId) {
-        return false
+/* The grid is a 2D array that maps (x,y) positions to the key of a GridItem in the gridItemsMap */
+func createCells () [][]int {
+    // Allocate the top-level slice.
+    cells := make([][]int, GRID_HEIGHT)  // One row per unit of y.
+    // Loop over the rows, allocating the slice for each row.
+    for i := range cells {
+        cells[i] = make([]int, GRID_WIDTH)
     }
-
-    /* if there are any trolls still in the itemsMap, then can't remove */
-    for itemId, _ := range g.itemsMap {
-        if (itemId > 0) {
-            return false
-        }
-    }
-    maxGridId --
-    totalGrids --
-    return true
+    return cells
 }
 
 
@@ -197,6 +175,9 @@ func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) bool {
     requestedX := (currentX + moveX)
     requestedY := (currentY + moveY)
 
+    //currNonTrollItem := g.funCells[currentX][currentY]
+
+
     // collision detection with grid boundaries
     if (requestedX < 0 || requestedX >= GRID_WIDTH || requestedY < 0 || requestedY >= GRID_HEIGHT) {
         return false
@@ -208,9 +189,6 @@ func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) bool {
 
     // check if ran into non-troll item
     nonTrollItem := g.funCells[requestedX][requestedY]
-    if (nonTrollItem != 0) {
-        log.Println("nonTrollItem: ", nonTrollItem)
-    }
     switch nonTrollItem {
         case FOODBUTTON_ID: g.foodButtonCollision()
         case BANANA_ID:     g.bananaCollision(trollID)
@@ -227,6 +205,11 @@ func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) bool {
     
     return true
 }
+// func (g *Grid) TrollEnterLeft(trollID int) {
+//     x, y := g.emptySpot(0, DOOR_Y)
+
+// }
+
 func (g *Grid) AddTroll(trollID int) {
 
     x, y := g.emptySpot(0, 0)
@@ -238,8 +221,11 @@ func (g *Grid) AddTroll(trollID int) {
 func (g *Grid) ClearUpdateMap() {
     g.updateMap = make(map[int]*GridItem)
 }
-func (g *Grid) DeleteTroll(trollID int) {
+func (g *Grid) DeleteTroll(trollID int) error{
     gi := g.itemsMap[trollID]
+    if (gi == nil) {
+        return fmt.Errorf("Troll with id %i does not exist in Grid with id %i", trollID, g.id)
+    }
 
     // set troll to be deleted in updateMap
     gi.Name = "DELETE"
@@ -248,6 +234,7 @@ func (g *Grid) DeleteTroll(trollID int) {
     // delete troll GridItem
     g.removeFromCell(g.trollCells, gi)
     delete(g.itemsMap, trollID)
+    return nil
 }
 
 func (g *Grid) removeFromCell(cells [][]int, gi *GridItem) {
