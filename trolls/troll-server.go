@@ -127,10 +127,17 @@ func (s *Server) recieveMoveMessage(trollID int, data map[string]string) {
 
 	// TODO: HAVE GridMap move Troll 
 	/* get back 2 items: gridId indicates which Grid Troll now lives on.  ValidMove is like err */
-	validMove := s.gridMap.Grid(gId).MoveTroll(trollID, moveX, moveY)
+	newGridId, validMove := s.gridMap.MoveTroll(trollID, gId, moveX, moveY)
 	if (!validMove) {
 		s.sendItemsMessage(trollID)
 		return
+	}
+	/* handle Troll moving to new Grid */
+	if (newGridId != gId) {
+		log.Println("Server: troll moved to new grid", newGridId, "from grid", gId)
+		s.trollToGrid[trollID] = newGridId
+		s.sendItemsMessage(trollID)
+		s.sendUpdateMessage(newGridId)
 	}
 
 	s.sendUpdateMessage(gId)	

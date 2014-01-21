@@ -52,6 +52,16 @@ func NewGrid (gId int) *Grid {
     g.itemsMap[FOODBUTTON_ID] = foodButton
     g.funCells[9][9] = FOODBUTTON_ID
 
+    // add the door(s)
+    if (gId != 0) {
+        door_previous := NewGridItem("DOOR-PREVIOUS", 0, DOOR_Y)
+        g.itemsMap[DOOR_PREVIOUS_ID] = door_previous
+        g.funCells[0][DOOR_Y] = DOOR_PREVIOUS_ID
+    }
+    door_next := NewGridItem("DOOR-NEXT", GRID_WIDTH-1, DOOR_Y)
+    g.itemsMap[DOOR_NEXT_ID] = door_next
+    g.funCells[GRID_WIDTH-1][DOOR_Y] = DOOR_NEXT_ID
+
     return g
 }
 /* The grid is a 2D array that maps (x,y) positions to the key of a GridItem in the gridItemsMap */
@@ -125,20 +135,20 @@ func (g *Grid) emptySpot(x int, y int) (retX int, retY int) {
     count := 0
 
     for (count < GRID_WIDTH*GRID_HEIGHT) {
+        
         if (x >= GRID_WIDTH) {
             x = 0
             y += 1
-        }
-        if (y >= GRID_HEIGHT) {
+        } else if(y >= GRID_HEIGHT) {
             y = 0
             x = int(math.Mod(float64(x + 1), GRID_WIDTH))
+        } else {
+            if ((g.trollCells[x][y] == 0 && g.funCells[x][y] == 0)) {
+                return x, y
+            }
+            x += 1
+            count += 1
         }
-
-        if ((g.trollCells[x][y] ==0 && g.funCells[x][y] == 0)) {
-            return x, y
-        }
-        x += 1
-        count += 1
     }
     panic("No more empty spots on grid")
 }
@@ -159,40 +169,59 @@ func (g *Grid) IsFull() bool {
     }
     return false
 }
+
 /*********************************************************/
 // setter functions
 /*********************************************************/
 
-// returns false if move is not valid (collision)
-func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) bool {
-    log.Println("MoveTroll")
-    gi :=g.itemsMap[trollID]
+/* 
+- Checks whether move valid (no collision with boundary)
+    if collision -> returns (gridId, false)
+- Checks whether Troll is walking through previous/next door
+    if so -> returns (decremented/incremented gridID, true)
+- Otherwise moves Troll -> returns (gridId, true)
+
+Returns -> int:  gridID that Troll now lives in
+           bool: true if requested move was valid (and troll therefore moved), false otherwise
+*/
+func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) (int, bool) {
+    gi := g.itemsMap[trollID]
+    
     // retrieve troll client's current position
     currentX := gi.Coordinates["x"]
     currentY := gi.Coordinates["y"]
+    
     // calculate requested new position coordinates
     requestedX := (currentX + moveX)
     requestedY := (currentY + moveY)
+    
+    currFunItem := g.funCells[currentX][currentY]
+    
+    // collision detection with left/right grid boundaries
+    if (requestedX < 0 || requestedX >= GRID_WIDTH) {
+        // if was on a door, then go through the door, otherwise invalid
+        if (currFunItem == DOOR_PREVIOUS_ID) {
+            return (g.id - 1), true
+        } else if (currFunItem == DOOR_NEXT_ID) {
+            return (g.id + 1), true
+        }
+        return g.id, false
+    }
 
-    //currNonTrollItem := g.funCells[currentX][currentY]
-
-
-    // collision detection with grid boundaries
-    if (requestedX < 0 || requestedX >= GRID_WIDTH || requestedY < 0 || requestedY >= GRID_HEIGHT) {
-        return false
+    // collision detection with top/bottom grid boundaries
+    if (requestedY < 0 || requestedY >= GRID_HEIGHT) {
+        return g.id, false
     }
     // collision detection with other trolls
     if (g.trollCells[requestedX][requestedY] != 0) { 
-        return false
+        return g.id, false
     }
-
     // check if ran into non-troll item
     nonTrollItem := g.funCells[requestedX][requestedY]
     switch nonTrollItem {
         case FOODBUTTON_ID: g.foodButtonCollision()
         case BANANA_ID:     g.bananaCollision(trollID)
     }
-
     // move that troll
     g.trollCells[currentX][currentY] = 0
     g.trollCells[requestedX][requestedY] = trollID
@@ -201,21 +230,15 @@ func (g *Grid) MoveTroll(trollID int, moveX int, moveY int) bool {
     gi.Coordinates["y"] = requestedY
 
     g.updateMap[trollID] = gi
-    
-    return true
+    return g.id, true
 }
-// func (g *Grid) TrollEnterLeft(trollID int) {
-//     x, y := g.emptySpot(0, DOOR_Y)
-
-// }
 
 func (g *Grid) AddTroll(trollID int) {
-
     x, y := g.emptySpot(0, 0)
     gi := NewGridItem("no-name", x, y)
     g.trollCells[x][y] = trollID
     g.itemsMap[trollID] = gi
-    g.updateMap[trollID] = gi
+    g.updateMap[trollID] = gi 
 }
 func (g *Grid) ClearUpdateMap() {
     g.updateMap = make(map[int]*GridItem)

@@ -107,6 +107,9 @@ var TrollVillageModule = function(widgetDiv) {
 		console.log(msg)
 
 		// clear out old items
+		for (var itemID in self.items) {
+			self.items[itemID].erase();
+		}
 		self.items = {};
 
 		self.localID = msg.LocalTroll;
@@ -122,6 +125,10 @@ var TrollVillageModule = function(widgetDiv) {
 				newItem = new Banana();
 			} else if (item.Name == "FOODBUTTON") {
 				newItem = new FoodButton();
+			} else if (item.Name == "DOOR-PREVIOUS") {
+				newItem = new DoorPrevious();
+			} else if (item.Name == "DOOR-NEXT") {
+				newItem = new DoorNext();
 			} else if (itemID == self.localID) {
 				newItem = new LocalTroll();
 			} else {
@@ -167,13 +174,15 @@ var TrollVillageModule = function(widgetDiv) {
 	/* Define an object to hold all our images for the game so images are only ever created once. */
 	var imageRepository = new function() {
         // Define images
-        this.troll 		= new Image();
-        this.otherTroll = new Image();
-        this.foodButton = new Image();
-        this.banana		= new Image();
+        this.troll 			= new Image();
+        this.otherTroll 	= new Image();
+        this.doorPrevious 	= new Image();
+        this.doorNext 		= new Image();
+        this.foodButton 	= new Image();
+        this.banana			= new Image();
 
         // Ensure all images have loaded before starting the game
-        var numImages = 4;
+        var numImages = 6;
         var numLoaded = 0;
         function imageLoaded() {
             numLoaded++;
@@ -190,15 +199,23 @@ var TrollVillageModule = function(widgetDiv) {
         this.foodButton.onload = function() {
 			imageLoaded();
         }
+        this.doorPrevious.onload = function() {
+			imageLoaded();
+        }
+        this.doorNext.onload = function() {
+			imageLoaded();
+        }
         this.banana.onload = function() {
 			imageLoaded();
         }
 
         // Set images src
-        this.troll.src 		= DOMAIN + "/static/img/troll.gif";
-        this.otherTroll.src = DOMAIN + "/static/img/other-troll.gif";
-        this.foodButton.src = DOMAIN + "/static/img/troll-food-button.JPG";
-        this.banana.src 	= DOMAIN + "/static/img/banana.gif";
+        this.troll.src 			= DOMAIN + "/static/img/troll.gif";
+        this.otherTroll.src 	= DOMAIN + "/static/img/other-troll.gif";
+        this.doorPrevious.src 	= DOMAIN + "/static/img/door-previous.jpeg";
+        this.doorNext.src 		= DOMAIN + "/static/img/door-next.jpeg";
+        this.foodButton.src		= DOMAIN + "/static/img/troll-food-button.JPG";
+        this.banana.src 		= DOMAIN + "/static/img/banana.gif";
 	}
 	this.init = function() {
 		/* init is called only after the imageRepository has loaded in all images */
@@ -210,6 +227,8 @@ var TrollVillageModule = function(widgetDiv) {
 		OtherTroll.prototype.img 		= imageRepository.otherTroll;
 		Banana.prototype.img 	 		= imageRepository.banana;
 		FoodButton.prototype.img 		= imageRepository.foodButton;
+		DoorPrevious.prototype.img 		= imageRepository.doorPrevious;
+		DoorNext.prototype.img 			= imageRepository.doorNext;
 
 
 		trollConnection = new TrollConnection();
@@ -273,20 +292,32 @@ function Drawable() {
 		this.draw();
 	}
 }
-function StaticDrawable() {
-}
-StaticDrawable.prototype = new Drawable();
 function Banana() {
 	this.width = 25;
 	this.height = 25;
 }
 Banana.prototype = new Drawable();
+function StaticDrawable() {
+}
+StaticDrawable.prototype = new Drawable();
 function FoodButton() {
 	this.padding = 1;
 	this.width = this.board.cellSize - 2;
 	this.height = this.board.cellSize - 2;
 }
 FoodButton.prototype = new StaticDrawable();
+function DoorPrevious() {
+	this.padding = 1;
+	this.width = this.board.cellSize - 2;
+	this.height = this.board.cellSize - 2;
+}
+DoorPrevious.prototype = new StaticDrawable();
+function DoorNext() {
+	this.padding = 1;
+	this.width = this.board.cellSize - 2;
+	this.height = this.board.cellSize - 2;
+}
+DoorNext.prototype = new StaticDrawable();
 
 function Troll() {
 

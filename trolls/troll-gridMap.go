@@ -9,37 +9,56 @@ import (
 
 
 type GridMap struct {
-    totalGrids      int
     minGridId       int
     grids           map[int]*Grid
 }
 func NewGridMap() *GridMap {
-    totalGrids      := 0
     minGridId       := 0
     grids           := make(map[int]*Grid)
-
-    return &GridMap{ totalGrids, minGridId, grids }
+    return &GridMap{ minGridId, grids }
 }
 
 // getter function to get Grid by ID from GridMap
 func (gm *GridMap) Grid(gId int) *Grid {
     return gm.grids[gId]
 }
+/* Returns -> int:  gridID that Troll now lives in
+			  bool: true if requested move was valid (and troll therefore moved), false otherwise
+*/
+func (gm *GridMap) MoveTroll(trollID int, gridID int, moveX int, moveY int) (int, bool) {
+	var grid *Grid = gm.grids[gridID]
+	newGridID, validMove := grid.MoveTroll(trollID, moveX, moveY)
+	
+	/* check and handle Troll moving to new Grid */
+	if (newGridID != gridID) {
+		gm.grids[gridID].DeleteTroll(trollID)
+		
+		if (newGridID >= len(gm.grids)) {
+			gm.AddGrid()
+		}
+		gm.grids[newGridID].AddTroll(trollID)
+	}
+	return newGridID, validMove
+}
+func (gm *GridMap) AddGrid() {
+	gId := len(gm.grids)
+	var grid *Grid = NewGrid(gId)
+	gm.grids[gId] = grid
+}
 /* finds the next available Grid to add Troll to or creates new grid
     returns GridID that Troll was added to */
 func (gm *GridMap) AddTroll(tId int) int {
     gId := gm.minGridId
-    for ((gId < gm.totalGrids) && gm.grids[gId].IsFull()) {
+    for ((gId < len(gm.grids)) && gm.grids[gId].IsFull()) {
         gId ++
     }
     if (gm.grids[gId] == nil) {
-        g := NewGrid(gId)
-        gm.grids[gId] = g
-        gm.totalGrids ++
+        gm.AddGrid()
         fmt.Println("******** Added new Grid - Now ", len(gm.grids), "grids.")
     }
 
     gm.grids[gId].AddTroll(tId)
+    fmt.Println("GridMap grids", gm.grids, "gId", gId)
     return gId
 }
 /* Deletes Troll from its Grid 
@@ -67,7 +86,7 @@ func (gm *GridMap) DeleteTroll(gId int, tId int) error{
 */
 func (gm *GridMap) SafelyRemove (gId int) bool{
     /* if there is a grid after this one, we don't want to leave it as an island */
-    if (gId < (gm.totalGrids -1)) {
+    if (gId < (len(gm.grids) - 1)) {
         return false
     }
 
@@ -78,7 +97,6 @@ func (gm *GridMap) SafelyRemove (gId int) bool{
         }
     }
     /* Grid is safe for removal! */
-    delete(gm.grids, gId)  
-    gm.totalGrids --
+    delete(gm.grids, gId)
     return true
 }
