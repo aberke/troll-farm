@@ -19,7 +19,7 @@ I mean I wanted to learn Go and play with web sockets and make something interes
 TODO
 ---
 
-* Allow trolls to move from Grid to Grid
+* Take built in panic out of Grid.emptySpot()
 
 * TODO: MAKE WORK ON MOBILE
 
